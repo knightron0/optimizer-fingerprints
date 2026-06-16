@@ -1,8 +1,30 @@
 # fingerprinting
 
-Small optimizer experiments.
+Minimal optimizer fingerprinting experiments.
 
-## Muon vs Shampoo on CIFAR-10
+The core object is a fixed-size fingerprint for one optimizer in one fixed
+experimental world:
+
+```text
+optimizer -> trace -> fingerprint.json
+```
+
+After a fingerprint is written, comparing two optimizers is just a vector
+distance between saved `fingerprint.json` files.
+
+## Structure
+
+```text
+fingerprinting/
+  cli.py            # run/compare commands
+  probes/           # trace collection and fingerprint features
+  optimizers/       # OptimizerEntry loader and optimizer builders
+  worlds/           # fixed CIFAR-10 ResNet-18 world
+configs/
+  optimizers/       # YAML optimizer entries
+```
+
+## Usage
 
 Install dependencies:
 
@@ -10,37 +32,59 @@ Install dependencies:
 uv sync
 ```
 
-Smoke test Muon:
+Run a short fingerprint:
 
 ```bash
-uv run python train_cifar_mlp.py --optimizer muon --epochs 1 --limit-train-batches 5 --limit-test-batches 2
+uv run python -m fingerprinting run --optimizer adamw --seed 0 --max-steps 20
 ```
 
-Smoke test Shampoo with pseudoinverse root inverse:
+Override optimizer hyperparameters with Hydra-like dot paths:
 
 ```bash
-uv run python train_cifar_mlp.py --optimizer shampoo_pinv --epochs 1 --limit-train-batches 5 --limit-test-batches 2
+uv run python -m fingerprinting run \
+  --optimizer muon \
+  --set hparams.lr=0.01 \
+  --set hparams.weight_decay=0.0
 ```
 
-Smoke test default Shampoo:
+Supported optimizers:
 
 ```bash
-uv run python train_cifar_mlp.py --optimizer shampoo_default --epochs 1 --limit-train-batches 5 --limit-test-batches 2
+adamw
+muon
+shampoo_default
+shampoo_pinv_one_sided
 ```
 
-Smoke test one-sided Shampoo with pseudoinverse root inverse:
+These are loaded from `configs/optimizers/*.yaml`. Each entry defines:
+
+```yaml
+name: muon
+family: muon
+hparams:
+  lr: 0.02
+param_groups:
+  matrix: ndim>=2
+metadata:
+  description: Matrix-like parameters use Muon.
+```
+
+Each run writes:
+
+```text
+logs/fingerprints/<run-id>/
+  config.json
+  trace.jsonl
+  fingerprint.json
+```
+
+Compare two fingerprints:
 
 ```bash
-uv run python train_cifar_mlp.py --optimizer shampoo_pinv_one_sided --epochs 1 --limit-train-batches 5 --limit-test-batches 2
+uv run python -m fingerprinting compare \
+  logs/fingerprints/<run-a>/fingerprint.json \
+  logs/fingerprints/<run-b>/fingerprint.json
 ```
 
-Longer comparison:
-
-```bash
-uv run python train_cifar_mlp.py --optimizer muon --epochs 10 --seed 0
-uv run python train_cifar_mlp.py --optimizer shampoo_default --epochs 10 --seed 0
-uv run python train_cifar_mlp.py --optimizer shampoo_pinv --epochs 10 --seed 0
-uv run python train_cifar_mlp.py --optimizer shampoo_pinv_one_sided --epochs 10 --seed 0
-```
-
-Metrics are written as JSONL files under `logs/`.
+The v1 fingerprint contains direction, scale, trajectory, and matrix-structure
+blocks. Curvature/Hessian probes are intentionally deferred.

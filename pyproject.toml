@@ -1,10 +1,11 @@
 [project]
 name = "fingerprinting"
 version = "0.1.0"
-description = "Small optimizer comparison experiments."
+description = "Optimizer fingerprinting experiments."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "pyyaml>=6.0",
     "torch>=2.5",
     "torchvision>=0.20",
     "tqdm>=4.66",

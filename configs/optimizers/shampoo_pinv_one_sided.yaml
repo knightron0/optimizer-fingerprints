@@ -1,0 +1,20 @@
+name: shampoo_pinv_one_sided
+family: shampoo
+hparams:
+  lr: 0.01
+  betas: [0.9, 0.9]
+  beta2: 0.9
+  epsilon: 0.0
+  weight_decay: 0.01
+  adam_lr: 0.001
+  adam_betas: [0.9, 0.95]
+  preconditioner: pinv_one_sided
+  max_preconditioner_dim: 8192
+  precondition_frequency: 1
+  start_preconditioning_step: -1
+  grafting_epsilon: 1.0e-15
+param_groups:
+  matrix: ndim>=2
+  aux: ndim<2
+metadata:
+  description: Pseudoinverse-root one-sided Shampoo over matrix-like parameters with AdamW auxiliary parameters.

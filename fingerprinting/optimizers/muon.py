@@ -5,18 +5,22 @@ from typing import Iterable
 
 import torch
 from torch import Tensor
+from torch import nn
 from torch.optim import Optimizer
+
+from .entry import OptimizerEntry, OptimizerRuntime, get_hparam, split_params
 
 
 def _zeropower_via_newton_schulz(x: Tensor, steps: int) -> Tensor:
     """Approximate the zeroth power using the modded-nanogpt Muon iteration."""
-    if x.ndim != 2:
-        raise ValueError(f"Muon expects 2D tensors, got shape {tuple(x.shape)}")
+    if x.ndim < 2:
+        raise ValueError(f"Muon expects tensors with at least 2 dimensions, got shape {tuple(x.shape)}")
 
     original_dtype = x.dtype
-    x = x.bfloat16()
-    transpose = x.size(0) > x.size(1)
-    if transpose:
+    original_shape = x.shape
+    x = x.reshape(x.shape[0], -1).bfloat16()
+    transposed = x.size(0) > x.size(1)
+    if transposed:
         x = x.T
 
     x = x / (x.norm(dim=(-2, -1), keepdim=True) + 1e-7)
@@ -26,9 +30,9 @@ def _zeropower_via_newton_schulz(x: Tensor, steps: int) -> Tensor:
         xx_t = x @ x.T
         x = a * x + (b * xx_t + c * (xx_t @ xx_t)) @ x
 
-    if transpose:
+    if transposed:
         x = x.T
-    return x.to(dtype=original_dtype)
+    return x.reshape(original_shape).to(dtype=original_dtype)
 
 
 class MuonWithAuxAdam(Optimizer):
@@ -92,8 +96,8 @@ class MuonWithAuxAdam(Optimizer):
         for p in group["params"]:
             if p.grad is None:
                 continue
-            if p.ndim != 2:
-                raise ValueError("Muon groups should contain only 2D parameters")
+            if p.ndim < 2:
+                raise ValueError("Muon groups should contain only matrix-like parameters")
 
             grad = p.grad
             state = self.state[p]
@@ -103,7 +107,8 @@ class MuonWithAuxAdam(Optimizer):
             momentum.lerp_(grad, 1 - mu)
             update = grad.lerp(momentum, mu) if nesterov else momentum
             update = _zeropower_via_newton_schulz(update, ns_steps)
-            update *= max(1.0, p.size(0) / p.size(1)) ** 0.5
+            matrix_cols = p.numel() // p.size(0)
+            update *= max(1.0, p.size(0) / matrix_cols) ** 0.5
 
             if wd != 0:
                 p.mul_(1 - lr * wd)
@@ -139,3 +144,23 @@ class MuonWithAuxAdam(Optimizer):
             step_size = lr / bias_correction1
             denom = exp_avg_sq.sqrt().div_(math.sqrt(bias_correction2)).add_(eps)
             p.addcdiv_(exp_avg, denom, value=-step_size)
+
+
+def build_muon(model: nn.Module, entry: OptimizerEntry) -> OptimizerRuntime:
+    matrix_params, aux_params = split_params(model)
+    optimizer = MuonWithAuxAdam(
+        [
+            {"params": matrix_params, "use_muon": True},
+            {"params": aux_params, "use_muon": False},
+        ],
+        lr=float(get_hparam(entry, "lr", (float, int))),
+        weight_decay=float(get_hparam(entry, "weight_decay", (float, int))),
+        mu=float(entry.hparams.get("mu", 0.95)),
+        nesterov=bool(entry.hparams.get("nesterov", True)),
+        ns_steps=int(entry.hparams.get("ns_steps", 12)),
+        adam_lr=float(get_hparam(entry, "adam_lr", (float, int))),
+        adam_betas=tuple(entry.hparams.get("adam_betas", (0.9, 0.95))),
+        adam_eps=float(entry.hparams.get("adam_eps", 1e-8)),
+        adam_weight_decay=float(entry.hparams.get("adam_weight_decay", entry.hparams["weight_decay"])),
+    )
+    return OptimizerRuntime(optimizer)
