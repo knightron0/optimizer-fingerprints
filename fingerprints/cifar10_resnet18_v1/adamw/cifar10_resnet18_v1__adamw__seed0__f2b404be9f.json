@@ -1,0 +1,150 @@
+{
+  "block_weights": {
+    "direction": 1.0,
+    "matrix": 1.0,
+    "scale": 1.0,
+    "trajectory": 1.0
+  },
+  "checkpoint_steps": [
+    0,
+    50,
+    100,
+    150,
+    200,
+    250,
+    300
+  ],
+  "displacement": 48.88773727416992,
+  "feature_names": [
+    "direction.update_neg_grad_cos.mean",
+    "direction.update_neg_grad_cos.std",
+    "direction.update_prev_update_cos.mean",
+    "direction.update_prev_update_cos.std",
+    "direction.update_prev_update_cos.frac_negative",
+    "scale.update_grad_norm_ratio.mean",
+    "scale.update_grad_norm_ratio.std",
+    "scale.update_theta_norm_ratio.mean",
+    "scale.update_theta_norm_ratio.std",
+    "scale.update_norm.cv",
+    "trajectory.mean_directional_similarity",
+    "trajectory.directness",
+    "trajectory.checkpoint_consecutive_cos.mean",
+    "trajectory.checkpoint_consecutive_cos.std",
+    "matrix.update_grad_cos.mean",
+    "matrix.update_grad_cos.std",
+    "matrix.update_polar_grad_cos.mean",
+    "matrix.update_polar_grad_cos.std",
+    "matrix.update_effective_rank.mean",
+    "matrix.update_singular_entropy.mean",
+    "matrix.update_nuclear_fro_ratio.mean"
+  ],
+  "features": {
+    "direction.update_neg_grad_cos.mean": 0.09762091988076767,
+    "direction.update_neg_grad_cos.std": 0.04332752592007053,
+    "direction.update_prev_update_cos.frac_negative": 0.0,
+    "direction.update_prev_update_cos.mean": 0.885313420590748,
+    "direction.update_prev_update_cos.std": 0.03262538958287954,
+    "matrix.update_effective_rank.mean": 111.36803348476585,
+    "matrix.update_grad_cos.mean": -0.38044119318799374,
+    "matrix.update_grad_cos.std": 0.05264947983189357,
+    "matrix.update_nuclear_fro_ratio.mean": 7.678294661477275,
+    "matrix.update_polar_grad_cos.mean": -0.22540460580161642,
+    "matrix.update_polar_grad_cos.std": 0.016376567472398757,
+    "matrix.update_singular_entropy.mean": 4.3925774263011075,
+    "scale.update_grad_norm_ratio.mean": 0.2347496929881612,
+    "scale.update_grad_norm_ratio.std": 0.06618061437903154,
+    "scale.update_norm.cv": 0.36301716022930675,
+    "scale.update_theta_norm_ratio.mean": 0.0055569877510343235,
+    "scale.update_theta_norm_ratio.std": 0.002113709311213705,
+    "trajectory.checkpoint_consecutive_cos.mean": 0.9922711451848348,
+    "trajectory.checkpoint_consecutive_cos.std": 0.004831585567444563,
+    "trajectory.directness": 0.2506527048360435,
+    "trajectory.mean_directional_similarity": 0.9720600190616789
+  },
+  "fingerprint_id": "cifar10_resnet18_v1__adamw__seed0__f2b404be9f",
+  "normalized_vector": [
+    0.054700061678886414,
+    0.02427777089178562,
+    0.4960688352584839,
+    0.018281027674674988,
+    0.0,
+    0.26835697889328003,
+    0.07565518468618393,
+    0.006352538242936134,
+    0.0024163126945495605,
+    0.4149875342845917,
+    0.34433406591415405,
+    0.08878902345895767,
+    0.3514934480190277,
+    0.0017114987131208181,
+    -0.0017026595305651426,
+    0.00023563204740639776,
+    -0.001008795341476798,
+    7.329311483772472e-05,
+    0.4984261691570282,
+    0.019658923149108887,
+    0.03436410799622536
+  ],
+  "optimizer": {
+    "config_path": "configs/optimizers/adamw.yaml",
+    "family": "adamw",
+    "hparams": {
+      "betas": [
+        0.9,
+        0.95
+      ],
+      "eps": 1e-08,
+      "lr": 0.001,
+      "weight_decay": 0.01
+    },
+    "metadata": {
+      "description": "AdamW over all trainable parameters."
+    },
+    "name": "adamw",
+    "param_groups": {
+      "all": "trainable"
+    }
+  },
+  "path_length": 195.04173037409782,
+  "probe_config": {
+    "checkpoint_interval": 50,
+    "log_interval": 10,
+    "matrix_probe_interval": 25,
+    "max_steps": 300,
+    "svd_max_dim": 512
+  },
+  "raw_vector": [
+    0.09762091988076767,
+    0.04332752592007053,
+    0.885313420590748,
+    0.03262538958287954,
+    0.0,
+    0.2347496929881612,
+    0.06618061437903154,
+    0.0055569877510343235,
+    0.002113709311213705,
+    0.36301716022930675,
+    0.9720600190616789,
+    0.2506527048360435,
+    0.9922711451848348,
+    0.004831585567444563,
+    -0.38044119318799374,
+    0.05264947983189357,
+    -0.22540460580161642,
+    0.016376567472398757,
+    111.36803348476585,
+    4.3925774263011075,
+    7.678294661477275
+  ],
+  "run_id": "cifar10_resnet18_v1__adamw__seed0__f2b404be9f",
+  "schema_version": "optimizer_fingerprint_v1",
+  "world": {
+    "batch_size": 128,
+    "data_dir": "data",
+    "dataset": "cifar10",
+    "model": "resnet18_cifar",
+    "num_workers": 0,
+    "seed": 0,
+    "world_id": "cifar10_resnet18_v1"
+  }
+}

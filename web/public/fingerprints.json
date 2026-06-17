@@ -1,5 +1,46 @@
 {
   "fingerprint_root": "fingerprints",
-  "fingerprints": [],
+  "fingerprints": [
+    {
+      "feature_count": 21,
+      "fingerprint_id": "cifar10_resnet18_v1__adamw__seed0__f2b404be9f",
+      "optimizer": "adamw",
+      "optimizer_family": "adamw",
+      "path": "fingerprints/cifar10_resnet18_v1/adamw/cifar10_resnet18_v1__adamw__seed0__f2b404be9f.json",
+      "schema_version": "optimizer_fingerprint_v1",
+      "seed": 0,
+      "world_id": "cifar10_resnet18_v1"
+    },
+    {
+      "feature_count": 21,
+      "fingerprint_id": "cifar10_resnet18_v1__muon__seed0__32951fd322",
+      "optimizer": "muon",
+      "optimizer_family": "muon",
+      "path": "fingerprints/cifar10_resnet18_v1/muon/cifar10_resnet18_v1__muon__seed0__32951fd322.json",
+      "schema_version": "optimizer_fingerprint_v1",
+      "seed": 0,
+      "world_id": "cifar10_resnet18_v1"
+    },
+    {
+      "feature_count": 21,
+      "fingerprint_id": "cifar10_resnet18_v1__shampoo_default__seed0__85ec1d3c29",
+      "optimizer": "shampoo_default",
+      "optimizer_family": "shampoo",
+      "path": "fingerprints/cifar10_resnet18_v1/shampoo_default/cifar10_resnet18_v1__shampoo_default__seed0__85ec1d3c29.json",
+      "schema_version": "optimizer_fingerprint_v1",
+      "seed": 0,
+      "world_id": "cifar10_resnet18_v1"
+    },
+    {
+      "feature_count": 21,
+      "fingerprint_id": "cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__4a76bf30a5",
+      "optimizer": "shampoo_pinv_one_sided",
+      "optimizer_family": "shampoo",
+      "path": "fingerprints/cifar10_resnet18_v1/shampoo_pinv_one_sided/cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__4a76bf30a5.json",
+      "schema_version": "optimizer_fingerprint_v1",
+      "seed": 0,
+      "world_id": "cifar10_resnet18_v1"
+    }
+  ],
   "schema_version": "fingerprint_index_v1"
 }

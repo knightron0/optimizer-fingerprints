@@ -1,0 +1,162 @@
+{
+  "block_weights": {
+    "direction": 1.0,
+    "matrix": 1.0,
+    "scale": 1.0,
+    "trajectory": 1.0
+  },
+  "checkpoint_steps": [
+    0,
+    50,
+    100,
+    150,
+    200,
+    250,
+    300
+  ],
+  "displacement": 562.0376586914062,
+  "feature_names": [
+    "direction.update_neg_grad_cos.mean",
+    "direction.update_neg_grad_cos.std",
+    "direction.update_prev_update_cos.mean",
+    "direction.update_prev_update_cos.std",
+    "direction.update_prev_update_cos.frac_negative",
+    "scale.update_grad_norm_ratio.mean",
+    "scale.update_grad_norm_ratio.std",
+    "scale.update_theta_norm_ratio.mean",
+    "scale.update_theta_norm_ratio.std",
+    "scale.update_norm.cv",
+    "trajectory.mean_directional_similarity",
+    "trajectory.directness",
+    "trajectory.checkpoint_consecutive_cos.mean",
+    "trajectory.checkpoint_consecutive_cos.std",
+    "matrix.update_grad_cos.mean",
+    "matrix.update_grad_cos.std",
+    "matrix.update_polar_grad_cos.mean",
+    "matrix.update_polar_grad_cos.std",
+    "matrix.update_effective_rank.mean",
+    "matrix.update_singular_entropy.mean",
+    "matrix.update_nuclear_fro_ratio.mean"
+  ],
+  "features": {
+    "direction.update_neg_grad_cos.mean": 0.029744167386864636,
+    "direction.update_neg_grad_cos.std": 0.032863301796969724,
+    "direction.update_prev_update_cos.frac_negative": 0.0,
+    "direction.update_prev_update_cos.mean": 0.9110800003925691,
+    "direction.update_prev_update_cos.std": 0.031900477559854486,
+    "matrix.update_effective_rank.mean": 130.29626284921326,
+    "matrix.update_grad_cos.mean": -0.32641570071970666,
+    "matrix.update_grad_cos.std": 0.07446892439527406,
+    "matrix.update_nuclear_fro_ratio.mean": 8.791730920541617,
+    "matrix.update_polar_grad_cos.mean": -0.2320094707159562,
+    "matrix.update_polar_grad_cos.std": 0.04352448579880349,
+    "matrix.update_singular_entropy.mean": 4.490700892039708,
+    "scale.update_grad_norm_ratio.mean": 6.343860297134207,
+    "scale.update_grad_norm_ratio.std": 2.970095891621019,
+    "scale.update_norm.cv": 0.3698670421788673,
+    "scale.update_theta_norm_ratio.mean": 0.019393666318510586,
+    "scale.update_theta_norm_ratio.std": 0.023688369509682724,
+    "trajectory.checkpoint_consecutive_cos.mean": 0.8323486198981603,
+    "trajectory.checkpoint_consecutive_cos.std": 0.22528430819511414,
+    "trajectory.directness": 0.2821256274808878,
+    "trajectory.mean_directional_similarity": 0.650669148280507
+  },
+  "fingerprint_id": "cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__4a76bf30a5",
+  "normalized_vector": [
+    0.01629433035850525,
+    0.018003040924668312,
+    0.49910417199134827,
+    0.017475590109825134,
+    0.0,
+    0.45219361782073975,
+    0.21170996129512787,
+    0.0013823905028402805,
+    0.0016885192599147558,
+    0.026364313438534737,
+    0.2913936972618103,
+    0.12634629011154175,
+    0.3727564811706543,
+    0.1008906438946724,
+    -0.001249004271812737,
+    0.0002849495504051447,
+    -0.0008877661894075572,
+    0.00016654306091368198,
+    0.4985685348510742,
+    0.017183316871523857,
+    0.03364087641239166
+  ],
+  "optimizer": {
+    "config_path": "configs/optimizers/shampoo_pinv_one_sided.yaml",
+    "family": "shampoo",
+    "hparams": {
+      "adam_betas": [
+        0.9,
+        0.95
+      ],
+      "adam_lr": 0.001,
+      "beta2": 0.9,
+      "betas": [
+        0.9,
+        0.9
+      ],
+      "epsilon": 0.0,
+      "grafting_epsilon": 1e-15,
+      "lr": 0.01,
+      "max_preconditioner_dim": 8192,
+      "precondition_frequency": 1,
+      "preconditioner": "pinv_one_sided",
+      "start_preconditioning_step": -1,
+      "weight_decay": 0.01
+    },
+    "metadata": {
+      "description": "Pseudoinverse-root one-sided Shampoo over matrix-like parameters with AdamW auxiliary parameters."
+    },
+    "name": "shampoo_pinv_one_sided",
+    "param_groups": {
+      "aux": "ndim<2",
+      "matrix": "ndim>=2"
+    }
+  },
+  "path_length": 1992.1538631916046,
+  "probe_config": {
+    "checkpoint_interval": 50,
+    "log_interval": 10,
+    "matrix_probe_interval": 25,
+    "max_steps": 300,
+    "svd_max_dim": 512
+  },
+  "raw_vector": [
+    0.029744167386864636,
+    0.032863301796969724,
+    0.9110800003925691,
+    0.031900477559854486,
+    0.0,
+    6.343860297134207,
+    2.970095891621019,
+    0.019393666318510586,
+    0.023688369509682724,
+    0.3698670421788673,
+    0.650669148280507,
+    0.2821256274808878,
+    0.8323486198981603,
+    0.22528430819511414,
+    -0.32641570071970666,
+    0.07446892439527406,
+    -0.2320094707159562,
+    0.04352448579880349,
+    130.29626284921326,
+    4.490700892039708,
+    8.791730920541617
+  ],
+  "run_id": "cifar10_resnet18_v1__shampoo_pinv_one_sided__seed0__4a76bf30a5",
+  "schema_version": "optimizer_fingerprint_v1",
+  "world": {
+    "batch_size": 128,
+    "data_dir": "data",
+    "dataset": "cifar10",
+    "model": "resnet18_cifar",
+    "num_workers": 0,
+    "seed": 0,
+    "world_id": "cifar10_resnet18_v1"
+  }
+}
