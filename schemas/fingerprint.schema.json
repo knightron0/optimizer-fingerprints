@@ -98,8 +98,8 @@
             "update_prev_update_cos",
             "update_grad_norm_ratio",
             "update_theta_norm_ratio",
-            "cosine_from_initial",
-            "cosine_from_previous_snapshot"
+            "theta_initial_cos",
+            "theta_prev_snapshot_cos"
           ],
           "properties": {
             "loss": { "$ref": "#/$defs/metric_value" },
@@ -113,8 +113,8 @@
             "update_prev_update_cos": { "$ref": "#/$defs/metric_value" },
             "update_grad_norm_ratio": { "$ref": "#/$defs/metric_value" },
             "update_theta_norm_ratio": { "$ref": "#/$defs/metric_value" },
-            "cosine_from_initial": { "$ref": "#/$defs/metric_value" },
-            "cosine_from_previous_snapshot": { "$ref": "#/$defs/metric_value" }
+            "theta_initial_cos": { "$ref": "#/$defs/metric_value" },
+            "theta_prev_snapshot_cos": { "$ref": "#/$defs/metric_value" }
           }
         },
         "parameters": {
@@ -149,13 +149,14 @@
             "update_prev_update_cos",
             "update_grad_norm_ratio",
             "update_theta_norm_ratio",
-            "cosine_from_initial",
-            "cosine_from_previous_snapshot",
-            "matrix_update_grad_cos",
-            "matrix_update_polar_grad_cos",
-            "matrix_update_effective_rank",
-            "matrix_update_singular_entropy",
-            "matrix_update_nuclear_fro_ratio"
+            "theta_initial_cos",
+            "theta_prev_snapshot_cos",
+            "update_stable_rank",
+            "update_spectral_concentration",
+            "update_singular_value_spread",
+            "update_orthogonality_error",
+            "update_row_norm_cv",
+            "update_col_norm_cv"
           ],
           "properties": {
             "grad_norm": { "$ref": "#/$defs/metric_value" },
@@ -168,13 +169,14 @@
             "update_prev_update_cos": { "$ref": "#/$defs/metric_value" },
             "update_grad_norm_ratio": { "$ref": "#/$defs/metric_value" },
             "update_theta_norm_ratio": { "$ref": "#/$defs/metric_value" },
-            "cosine_from_initial": { "$ref": "#/$defs/metric_value" },
-            "cosine_from_previous_snapshot": { "$ref": "#/$defs/metric_value" },
-            "matrix_update_grad_cos": { "$ref": "#/$defs/metric_value" },
-            "matrix_update_polar_grad_cos": { "$ref": "#/$defs/metric_value" },
-            "matrix_update_effective_rank": { "$ref": "#/$defs/metric_value" },
-            "matrix_update_singular_entropy": { "$ref": "#/$defs/metric_value" },
-            "matrix_update_nuclear_fro_ratio": { "$ref": "#/$defs/metric_value" }
+            "theta_initial_cos": { "$ref": "#/$defs/metric_value" },
+            "theta_prev_snapshot_cos": { "$ref": "#/$defs/metric_value" },
+            "update_stable_rank": { "$ref": "#/$defs/metric_value" },
+            "update_spectral_concentration": { "$ref": "#/$defs/metric_value" },
+            "update_singular_value_spread": { "$ref": "#/$defs/metric_value" },
+            "update_orthogonality_error": { "$ref": "#/$defs/metric_value" },
+            "update_row_norm_cv": { "$ref": "#/$defs/metric_value" },
+            "update_col_norm_cv": { "$ref": "#/$defs/metric_value" }
           }
         }
       }

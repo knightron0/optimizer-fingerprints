@@ -22,8 +22,8 @@ METRIC_NAMES = [
     "update_prev_update_cos",
     "update_grad_norm_ratio",
     "update_theta_norm_ratio",
-    "cosine_from_initial",
-    "cosine_from_previous_snapshot",
+    "theta_initial_cos",
+    "theta_prev_snapshot_cos",
 ]
 
 PARAMETER_METRIC_NAMES = [
@@ -37,13 +37,14 @@ PARAMETER_METRIC_NAMES = [
     "update_prev_update_cos",
     "update_grad_norm_ratio",
     "update_theta_norm_ratio",
-    "cosine_from_initial",
-    "cosine_from_previous_snapshot",
-    "matrix_update_grad_cos",
-    "matrix_update_polar_grad_cos",
-    "matrix_update_effective_rank",
-    "matrix_update_singular_entropy",
-    "matrix_update_nuclear_fro_ratio",
+    "theta_initial_cos",
+    "theta_prev_snapshot_cos",
+    "update_stable_rank",
+    "update_spectral_concentration",
+    "update_singular_value_spread",
+    "update_orthogonality_error",
+    "update_row_norm_cv",
+    "update_col_norm_cv",
 ]
 
 
@@ -123,22 +124,42 @@ def _downsample_matrix(matrix: Tensor, max_dim: int) -> Tensor:
     return matrix.index_select(0, row_idx).index_select(1, col_idx)
 
 
-def _polar_factor(matrix: Tensor) -> Tensor:
-    u, _, vh = torch.linalg.svd(matrix, full_matrices=False)
-    return u @ vh
+def _coefficient_of_variation(values: Tensor) -> float:
+    mean = values.mean().item()
+    std = values.std(unbiased=False).item()
+    return _safe_div(std, mean)
 
 
-def _effective_rank(matrix: Tensor) -> tuple[float, float, float]:
+def _intrinsic_update_matrix_geometry(matrix: Tensor) -> dict[str, float]:
     singular_values = torch.linalg.svdvals(matrix)
-    total = singular_values.sum()
-    fro = matrix.norm()
-    if total.item() <= 1e-20:
-        return 0.0, 0.0, 0.0
-    probs = singular_values / total
-    entropy = -(probs * torch.log(probs.clamp_min(1e-20))).sum().item()
-    effective_rank = math.exp(entropy)
-    nuclear_fro_ratio = _safe_div(total.item(), fro.item())
-    return effective_rank, entropy, nuclear_fro_ratio
+    fro_sq = matrix.square().sum().item()
+    top_sq = singular_values[0].square().item() if singular_values.numel() else 0.0
+    if singular_values.numel() == 0 or top_sq <= 1e-20:
+        singular_value_spread = 0.0
+    else:
+        singular_value_spread = singular_values[0].item() / (singular_values[-1].item() + 1e-20)
+
+    rows, cols = matrix.shape
+    if rows >= cols:
+        gram = matrix.T @ matrix
+        identity_dim = cols
+    else:
+        gram = matrix @ matrix.T
+        identity_dim = rows
+    alpha = gram.trace().item() / max(identity_dim, 1)
+    scaled_identity = torch.eye(identity_dim, dtype=gram.dtype, device=gram.device) * alpha
+    orthogonality_error = _safe_div((gram - scaled_identity).norm().item(), gram.norm().item())
+
+    row_norms = matrix.norm(dim=1)
+    col_norms = matrix.norm(dim=0)
+    return {
+        "update_stable_rank": _safe_div(fro_sq, top_sq),
+        "update_spectral_concentration": _safe_div(top_sq, fro_sq),
+        "update_singular_value_spread": singular_value_spread,
+        "update_orthogonality_error": orthogonality_error,
+        "update_row_norm_cv": _coefficient_of_variation(row_norms),
+        "update_col_norm_cv": _coefficient_of_variation(col_norms),
+    }
 
 
 class FingerprintAccumulator:
@@ -220,8 +241,8 @@ class FingerprintAccumulator:
                 ),
                 "update_grad_norm_ratio": _safe_div(update_norm, grad_norm),
                 "update_theta_norm_ratio": _safe_div(update_norm, theta_norm),
-                "cosine_from_initial": torch.dot(self.initial_normed, normalized_flat).clamp(-1.0, 1.0).item(),
-                "cosine_from_previous_snapshot": (
+                "theta_initial_cos": torch.dot(self.initial_normed, normalized_flat).clamp(-1.0, 1.0).item(),
+                "theta_prev_snapshot_cos": (
                     torch.dot(self.previous_snapshot_normed, normalized_flat).clamp(-1.0, 1.0).item()
                     if self.previous_snapshot_normed is not None
                     else None
@@ -264,8 +285,8 @@ class FingerprintAccumulator:
                 ),
                 "update_grad_norm_ratio": _safe_div(update_norm, grad_norm),
                 "update_theta_norm_ratio": _safe_div(update_norm, theta_norm),
-                "cosine_from_initial": torch.dot(state.initial_normed, normalized_flat).clamp(-1.0, 1.0).item(),
-                "cosine_from_previous_snapshot": (
+                "theta_initial_cos": torch.dot(state.initial_normed, normalized_flat).clamp(-1.0, 1.0).item(),
+                "theta_prev_snapshot_cos": (
                     torch.dot(state.previous_snapshot_normed, normalized_flat).clamp(-1.0, 1.0).item()
                     if state.previous_snapshot_normed is not None
                     else None
@@ -290,29 +311,21 @@ class FingerprintAccumulator:
         observation: ParameterStepObservation,
     ) -> dict[str, float | None]:
         metric_names = [
-            "matrix_update_grad_cos",
-            "matrix_update_polar_grad_cos",
-            "matrix_update_effective_rank",
-            "matrix_update_singular_entropy",
-            "matrix_update_nuclear_fro_ratio",
+            "update_stable_rank",
+            "update_spectral_concentration",
+            "update_singular_value_spread",
+            "update_orthogonality_error",
+            "update_row_norm_cv",
+            "update_col_norm_cv",
         ]
         empty = {name: None for name in metric_names}
-        if param.ndim < 2 or param.grad is None:
+        if param.ndim < 2:
             return empty
         update = _matrix_view(observation.update)
-        grad = _matrix_view(param.grad.detach())
-        if update.numel() == 0 or grad.numel() == 0:
+        if update.numel() == 0:
             return empty
         update_small = _downsample_matrix(update, self.probe_config.svd_max_dim)
-        grad_small = _downsample_matrix(grad, self.probe_config.svd_max_dim)
-        effective_rank, entropy, nuclear_fro_ratio = _effective_rank(update_small)
-        return {
-            "matrix_update_grad_cos": _cosine(update_small, grad_small),
-            "matrix_update_polar_grad_cos": _cosine(update_small, _polar_factor(grad_small)),
-            "matrix_update_effective_rank": effective_rank,
-            "matrix_update_singular_entropy": entropy,
-            "matrix_update_nuclear_fro_ratio": nuclear_fro_ratio,
-        }
+        return _intrinsic_update_matrix_geometry(update_small)
 
     def finalize(self) -> dict:
         return {

@@ -21,7 +21,7 @@ const metricSections = [
 	{
 		id: 'trajectory',
 		title: 'Trajectory',
-		metrics: ['path_length', 'displacement', 'directness', 'cosine_from_initial', 'cosine_from_previous_snapshot'],
+		metrics: ['path_length', 'displacement', 'directness', 'theta_initial_cos', 'theta_prev_snapshot_cos'],
 	},
 	{
 		id: 'direction',
@@ -32,11 +32,12 @@ const metricSections = [
 		id: 'matrix',
 		title: 'Matrix',
 		metrics: [
-			'matrix_update_grad_cos',
-			'matrix_update_polar_grad_cos',
-			'matrix_update_effective_rank',
-			'matrix_update_singular_entropy',
-			'matrix_update_nuclear_fro_ratio',
+			'update_stable_rank',
+			'update_spectral_concentration',
+			'update_singular_value_spread',
+			'update_orthogonality_error',
+			'update_row_norm_cv',
+			'update_col_norm_cv',
 		],
 	},
 ];
