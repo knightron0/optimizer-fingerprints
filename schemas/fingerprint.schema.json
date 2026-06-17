@@ -156,7 +156,14 @@
             "update_singular_value_spread",
             "update_orthogonality_error",
             "update_row_norm_cv",
-            "update_col_norm_cv"
+            "update_col_norm_cv",
+            "update_rms",
+            "update_l1_l2_ratio",
+            "update_linf_l2_ratio",
+            "update_zero_fraction",
+            "update_kurtosis",
+            "update_abs_grad_abs_corr",
+            "update_sign_grad_agreement"
           ],
           "properties": {
             "grad_norm": { "$ref": "#/$defs/metric_value" },
@@ -176,7 +183,14 @@
             "update_singular_value_spread": { "$ref": "#/$defs/metric_value" },
             "update_orthogonality_error": { "$ref": "#/$defs/metric_value" },
             "update_row_norm_cv": { "$ref": "#/$defs/metric_value" },
-            "update_col_norm_cv": { "$ref": "#/$defs/metric_value" }
+            "update_col_norm_cv": { "$ref": "#/$defs/metric_value" },
+            "update_rms": { "$ref": "#/$defs/metric_value" },
+            "update_l1_l2_ratio": { "$ref": "#/$defs/metric_value" },
+            "update_linf_l2_ratio": { "$ref": "#/$defs/metric_value" },
+            "update_zero_fraction": { "$ref": "#/$defs/metric_value" },
+            "update_kurtosis": { "$ref": "#/$defs/metric_value" },
+            "update_abs_grad_abs_corr": { "$ref": "#/$defs/metric_value" },
+            "update_sign_grad_agreement": { "$ref": "#/$defs/metric_value" }
           }
         }
       }

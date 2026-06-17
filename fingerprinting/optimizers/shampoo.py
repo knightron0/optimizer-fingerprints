@@ -5,6 +5,7 @@ from torch.optim import AdamW
 
 from distributed_shampoo import (
     AdamPreconditionerConfig,
+    DefaultSOAPConfig,
     DistributedShampoo,
     EigenConfig,
     PseudoInverseConfig,
@@ -57,4 +58,6 @@ def _build_preconditioner_config(entry: OptimizerEntry) -> RootInvShampooPrecond
                 rank_deficient_stability_config=PseudoInverseConfig(),
             ),
         )
+    if mode == "soap":
+        return DefaultSOAPConfig
     raise ValueError(f"Unsupported Shampoo preconditioner mode: {mode!r}")

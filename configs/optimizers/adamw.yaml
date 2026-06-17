@@ -8,4 +8,5 @@ hparams:
 param_groups:
   all: trainable
 metadata:
+  geometry: coordinatewise_adaptive
   description: AdamW over all trainable parameters.

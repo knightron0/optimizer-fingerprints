@@ -1,0 +1,13 @@
+name: sgd
+family: sgd
+hparams:
+  lr: 0.1
+  weight_decay: 0.0
+  momentum: 0.0
+  dampening: 0.0
+  nesterov: false
+param_groups:
+  all: trainable
+metadata:
+  geometry: raw_gradient
+  description: Plain SGD over all trainable parameters.

@@ -74,6 +74,20 @@ const repoRoot = resolve(webRoot, '..');
 
 export const optimizerConfigs: OptimizerConfig[] = [
 	{
+		name: 'adafactor',
+		description: 'Adafactor factored coordinatewise updates over all trainable parameters.',
+		hparams: {
+			lr: 0.001,
+			beta2_decay: -0.8,
+			eps: [null, 0.001],
+			d: 1.0,
+			weight_decay: 0.01,
+		},
+		paramGroups: {
+			all: 'trainable',
+		},
+	},
+	{
 		name: 'adamw',
 		description: 'AdamW over all trainable parameters.',
 		hparams: {
@@ -81,6 +95,18 @@ export const optimizerConfigs: OptimizerConfig[] = [
 			betas: [0.9, 0.95],
 			weight_decay: 0.01,
 			eps: 1.0e-8,
+		},
+		paramGroups: {
+			all: 'trainable',
+		},
+	},
+	{
+		name: 'lion',
+		description: 'Lion sign update with momentum over all trainable parameters.',
+		hparams: {
+			lr: 0.0001,
+			betas: [0.9, 0.99],
+			weight_decay: 0.01,
 		},
 		paramGroups: {
 			all: 'trainable',
@@ -103,6 +129,48 @@ export const optimizerConfigs: OptimizerConfig[] = [
 		paramGroups: {
 			matrix: 'ndim>=2',
 			aux: 'ndim<2',
+		},
+	},
+	{
+		name: 'sam_adamw',
+		description: 'SAM perturbation step with AdamW base optimizer over all trainable parameters.',
+		hparams: {
+			lr: 0.001,
+			betas: [0.9, 0.95],
+			weight_decay: 0.01,
+			eps: 1.0e-8,
+			rho: 0.05,
+		},
+		paramGroups: {
+			all: 'trainable',
+		},
+	},
+	{
+		name: 'sgd',
+		description: 'Plain SGD over all trainable parameters.',
+		hparams: {
+			lr: 0.1,
+			weight_decay: 0.0,
+			momentum: 0.0,
+			dampening: 0.0,
+			nesterov: false,
+		},
+		paramGroups: {
+			all: 'trainable',
+		},
+	},
+	{
+		name: 'sgd_momentum',
+		description: 'SGD with momentum over all trainable parameters.',
+		hparams: {
+			lr: 0.1,
+			weight_decay: 0.0,
+			momentum: 0.9,
+			dampening: 0.0,
+			nesterov: false,
+		},
+		paramGroups: {
+			all: 'trainable',
 		},
 	},
 	{
@@ -147,6 +215,43 @@ export const optimizerConfigs: OptimizerConfig[] = [
 		paramGroups: {
 			matrix: 'ndim>=2',
 			aux: 'ndim<2',
+		},
+	},
+	{
+		name: 'soap',
+		description:
+			'SOAP-style Adam updates in the Shampoo preconditioner eigenbasis for matrix-like parameters with AdamW auxiliary parameters.',
+		hparams: {
+			lr: 0.001,
+			betas: [0.9, 0.95],
+			beta2: 0.95,
+			epsilon: 1.0e-8,
+			weight_decay: 0.01,
+			adam_lr: 0.001,
+			adam_betas: [0.9, 0.95],
+			preconditioner: 'soap',
+			max_preconditioner_dim: 8192,
+			precondition_frequency: 1,
+			start_preconditioning_step: -1,
+			grafting_epsilon: 1.0e-8,
+		},
+		paramGroups: {
+			matrix: 'ndim>=2',
+			aux: 'ndim<2',
+		},
+	},
+	{
+		name: 'sophia_g',
+		description: 'Sophia-G style clipped diagonal curvature updates over all trainable parameters.',
+		hparams: {
+			lr: 0.001,
+			betas: [0.965, 0.99],
+			rho: 0.04,
+			weight_decay: 0.01,
+			eps: 1.0e-12,
+		},
+		paramGroups: {
+			all: 'trainable',
 		},
 	},
 ];

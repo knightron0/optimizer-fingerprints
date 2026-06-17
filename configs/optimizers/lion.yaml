@@ -1,0 +1,11 @@
+name: lion
+family: lion
+hparams:
+  lr: 0.0001
+  betas: [0.9, 0.99]
+  weight_decay: 0.01
+param_groups:
+  all: trainable
+metadata:
+  geometry: sign_momentum
+  description: Lion sign update with momentum over all trainable parameters.

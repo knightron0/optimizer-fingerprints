@@ -1,0 +1,21 @@
+name: soap
+family: shampoo
+hparams:
+  lr: 0.001
+  betas: [0.9, 0.95]
+  beta2: 0.95
+  epsilon: 1.0e-8
+  weight_decay: 0.01
+  adam_lr: 0.001
+  adam_betas: [0.9, 0.95]
+  preconditioner: soap
+  max_preconditioner_dim: 8192
+  precondition_frequency: 1
+  start_preconditioning_step: -1
+  grafting_epsilon: 1.0e-8
+param_groups:
+  matrix: ndim>=2
+  aux: ndim<2
+metadata:
+  geometry: preconditioner_eigenbasis
+  description: SOAP-style Adam updates in the Shampoo preconditioner eigenbasis for matrix-like parameters with AdamW auxiliary parameters.

@@ -110,7 +110,16 @@ def run_command(args: argparse.Namespace) -> None:
             loss = F.cross_entropy(logits, targets)
             loss.backward()
             before_params = accumulator.capture_before_step()
-            optimizer.step()
+            if optimizer.requires_closure:
+                def closure() -> torch.Tensor:
+                    logits = model(images)
+                    closure_loss = F.cross_entropy(logits, targets)
+                    closure_loss.backward()
+                    return closure_loss
+
+                optimizer.step(closure)
+            else:
+                optimizer.step()
             accumulator.observe_step(step=step, before_params=before_params, loss=loss.item())
             progress.update(1)
             if step >= probe_config.max_steps:

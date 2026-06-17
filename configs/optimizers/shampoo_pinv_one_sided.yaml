@@ -17,4 +17,5 @@ param_groups:
   matrix: ndim>=2
   aux: ndim<2
 metadata:
+  geometry: matrix_tensor_preconditioned
   description: Pseudoinverse-root one-sided Shampoo over matrix-like parameters with AdamW auxiliary parameters.

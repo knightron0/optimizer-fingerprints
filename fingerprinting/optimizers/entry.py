@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import torch
 from torch import nn
@@ -34,14 +34,24 @@ class OptimizerEntry:
         }
 
     def build(self, model: nn.Module) -> OptimizerRuntime:
+        from .adafactor import build_adafactor
         from .adamw import build_adamw
+        from .lion import build_lion
         from .muon import build_muon
+        from .sam import build_sam_adamw
+        from .sgd import build_sgd
         from .shampoo import build_shampoo
+        from .sophia import build_sophia_g
 
         builders = {
+            "adafactor": build_adafactor,
             "adamw": build_adamw,
+            "lion": build_lion,
             "muon": build_muon,
+            "sam_adamw": build_sam_adamw,
+            "sgd": build_sgd,
             "shampoo": build_shampoo,
+            "sophia_g": build_sophia_g,
         }
         try:
             builder = builders[self.family]
@@ -51,8 +61,14 @@ class OptimizerEntry:
 
 
 class OptimizerRuntime:
-    def __init__(self, optimizers: torch.optim.Optimizer | list[torch.optim.Optimizer]) -> None:
+    def __init__(
+        self,
+        optimizers: torch.optim.Optimizer | list[torch.optim.Optimizer],
+        *,
+        requires_closure: bool = False,
+    ) -> None:
         self.optimizers = optimizers if isinstance(optimizers, list) else [optimizers]
+        self.requires_closure = requires_closure
 
     @property
     def param_groups(self) -> list[dict]:
@@ -62,9 +78,12 @@ class OptimizerRuntime:
         for optimizer in self.optimizers:
             optimizer.zero_grad(set_to_none=set_to_none)
 
-    def step(self) -> None:
+    def step(self, closure: Callable[[], Any] | None = None) -> None:
         for optimizer in self.optimizers:
-            optimizer.step()
+            if closure is not None:
+                optimizer.step(closure)
+            else:
+                optimizer.step()
 
     def assert_covers(self, model: nn.Module) -> None:
         model_params = {p for p in model.parameters() if p.requires_grad}

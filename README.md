@@ -50,10 +50,17 @@ uv run python -m fingerprinting run \
 Supported optimizers:
 
 ```bash
+adafactor
 adamw
+lion
 muon
+sam_adamw
+sgd
+sgd_momentum
 shampoo_default
 shampoo_pinv_one_sided
+soap
+sophia_g
 ```
 
 These are loaded from `configs/optimizers/*.yaml`. Each entry defines:

@@ -45,6 +45,13 @@ PARAMETER_METRIC_NAMES = [
     "update_orthogonality_error",
     "update_row_norm_cv",
     "update_col_norm_cv",
+    "update_rms",
+    "update_l1_l2_ratio",
+    "update_linf_l2_ratio",
+    "update_zero_fraction",
+    "update_kurtosis",
+    "update_abs_grad_abs_corr",
+    "update_sign_grad_agreement",
 ]
 
 
@@ -128,6 +135,42 @@ def _coefficient_of_variation(values: Tensor) -> float:
     mean = values.mean().item()
     std = values.std(unbiased=False).item()
     return _safe_div(std, mean)
+
+
+def _pearson_corr(a: Tensor, b: Tensor) -> float:
+    a_centered = a - a.mean()
+    b_centered = b - b.mean()
+    denom = a_centered.norm() * b_centered.norm()
+    if denom.item() <= 1e-20:
+        return 0.0
+    return torch.dot(a_centered, b_centered).div(denom).clamp(-1.0, 1.0).item()
+
+
+def _intrinsic_update_elementwise_geometry(update_flat: Tensor, grad_flat: Tensor) -> dict[str, float]:
+    update_flat = update_flat.float().flatten()
+    grad_flat = grad_flat.float().flatten()
+    numel = update_flat.numel()
+    update_abs = update_flat.abs()
+    grad_abs = grad_flat.abs()
+    update_l2 = update_flat.norm().item()
+    update_rms = math.sqrt(update_flat.square().mean().item()) if numel else 0.0
+    centered = update_flat - update_flat.mean()
+    variance = centered.square().mean().item()
+    kurtosis = _safe_div(centered.pow(4).mean().item(), variance**2)
+    active = (update_abs > 1e-20) | (grad_abs > 1e-20)
+    if active.any():
+        sign_agreement = (torch.sign(update_flat[active]) == torch.sign(-grad_flat[active])).float().mean().item()
+    else:
+        sign_agreement = 0.0
+    return {
+        "update_rms": update_rms,
+        "update_l1_l2_ratio": _safe_div(update_abs.sum().item(), math.sqrt(max(numel, 1)) * update_l2),
+        "update_linf_l2_ratio": _safe_div(update_abs.max().item() if numel else 0.0, update_l2),
+        "update_zero_fraction": (update_abs <= 1e-20).float().mean().item() if numel else 0.0,
+        "update_kurtosis": kurtosis,
+        "update_abs_grad_abs_corr": _pearson_corr(update_abs, grad_abs),
+        "update_sign_grad_agreement": sign_agreement,
+    }
 
 
 def _intrinsic_update_matrix_geometry(matrix: Tensor) -> dict[str, float]:
@@ -291,6 +334,7 @@ class FingerprintAccumulator:
                     if state.previous_snapshot_normed is not None
                     else None
                 ),
+                **_intrinsic_update_elementwise_geometry(update_flat, grad_flat),
                 **self._observe_parameter_matrix_structure(param, observation),
             }
             snapshots.append(
