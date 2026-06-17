@@ -12,6 +12,7 @@
     "model",
     "optimizer",
     "metric_names",
+    "parameter_metric_names",
     "snapshots"
   ],
   "properties": {
@@ -62,6 +63,11 @@
       "items": { "type": "string", "minLength": 1 },
       "minItems": 1
     },
+    "parameter_metric_names": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1
+    },
     "snapshots": {
       "type": "array",
       "items": { "$ref": "#/$defs/snapshot" }
@@ -74,7 +80,7 @@
     "snapshot": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["step", "metrics"],
+      "required": ["step", "metrics", "parameters"],
       "properties": {
         "step": { "type": "integer", "minimum": 1 },
         "metrics": {
@@ -82,6 +88,57 @@
           "additionalProperties": false,
           "required": [
             "loss",
+            "grad_norm",
+            "update_norm",
+            "theta_norm",
+            "path_length",
+            "displacement",
+            "directness",
+            "update_neg_grad_cos",
+            "update_prev_update_cos",
+            "update_grad_norm_ratio",
+            "update_theta_norm_ratio",
+            "cosine_from_initial",
+            "cosine_from_previous_snapshot"
+          ],
+          "properties": {
+            "loss": { "$ref": "#/$defs/metric_value" },
+            "grad_norm": { "$ref": "#/$defs/metric_value" },
+            "update_norm": { "$ref": "#/$defs/metric_value" },
+            "theta_norm": { "$ref": "#/$defs/metric_value" },
+            "path_length": { "$ref": "#/$defs/metric_value" },
+            "displacement": { "$ref": "#/$defs/metric_value" },
+            "directness": { "$ref": "#/$defs/metric_value" },
+            "update_neg_grad_cos": { "$ref": "#/$defs/metric_value" },
+            "update_prev_update_cos": { "$ref": "#/$defs/metric_value" },
+            "update_grad_norm_ratio": { "$ref": "#/$defs/metric_value" },
+            "update_theta_norm_ratio": { "$ref": "#/$defs/metric_value" },
+            "cosine_from_initial": { "$ref": "#/$defs/metric_value" },
+            "cosine_from_previous_snapshot": { "$ref": "#/$defs/metric_value" }
+          }
+        },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/parameter_snapshot" }
+        }
+      }
+    },
+    "parameter_snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "shape", "ndim", "numel", "metrics"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "shape": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "ndim": { "type": "integer", "minimum": 0 },
+        "numel": { "type": "integer", "minimum": 1 },
+        "metrics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
             "grad_norm",
             "update_norm",
             "theta_norm",
@@ -101,7 +158,6 @@
             "matrix_update_nuclear_fro_ratio"
           ],
           "properties": {
-            "loss": { "$ref": "#/$defs/metric_value" },
             "grad_norm": { "$ref": "#/$defs/metric_value" },
             "update_norm": { "$ref": "#/$defs/metric_value" },
             "theta_norm": { "$ref": "#/$defs/metric_value" },

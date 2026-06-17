@@ -88,18 +88,23 @@ uv run python -m fingerprinting index
 ## Fingerprint schema
 
 Fingerprint JSON artifacts follow `schemas/fingerprint.schema.json`. A
-fingerprint is one training run plus an ordered list of scalar metric snapshots:
+fingerprint is one training run plus an ordered list of snapshots:
 
 ```text
-task + model + optimizer + snapshots
+task + model + optimizer + snapshots + per-parameter snapshots
 ```
 
 Each snapshot is computed after an optimizer step at `snapshot_interval`, plus
 the final step if needed. Sampling settings such as `max_steps`,
 `snapshot_interval`, and `svd_max_dim` are part of the task definition, not a
-separate probe block. The snapshot metrics include direction, scale,
-trajectory, and matrix-structure scalars. Curvature/Hessian probes are
-intentionally deferred.
+separate probe block.
+
+Run-level snapshot metrics include loss plus whole-model direction, scale, and
+trajectory scalars. Parameter-dependent metrics are serialized under
+`snapshots[].parameters[]`, one object per trainable parameter with its name,
+shape, dimensionality, element count, and scalar metrics. Matrix-structure
+metrics are stored per parameter instead of averaged across parameters.
+Curvature/Hessian probes are intentionally deferred.
 
 Weights, updates, gradients, tensors, aggregate vectors, and normalized vectors
 are not serialized. They are only used temporarily while computing scalar

@@ -45,9 +45,17 @@ export interface SnapshotFingerprint {
 		[key: string]: JsonValue;
 	};
 	metric_names: string[];
+	parameter_metric_names: string[];
 	snapshots: {
 		step: number;
 		metrics: Record<string, MetricValue>;
+		parameters: {
+			name: string;
+			shape: number[];
+			ndim: number;
+			numel: number;
+			metrics: Record<string, MetricValue>;
+		}[];
 	}[];
 }
 
@@ -210,6 +218,7 @@ export function isSnapshotFingerprint(value: unknown): value is SnapshotFingerpr
 		typeof candidate.model === 'object' &&
 		typeof candidate.optimizer === 'object' &&
 		Array.isArray(candidate.metric_names) &&
+		Array.isArray(candidate.parameter_metric_names) &&
 		Array.isArray(candidate.snapshots)
 	);
 }
