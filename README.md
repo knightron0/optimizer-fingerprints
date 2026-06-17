@@ -74,21 +74,10 @@ Each run writes:
 ```text
 fingerprints/<world-id>/<optimizer>/<fingerprint-id>.json
 web/public/fingerprints.json
-logs/traces/<world-id>/<optimizer>/<fingerprint-id>/
-  config.json
-  trace.jsonl
 ```
 
 The `fingerprints/` files and `web/public/fingerprints.json` are intended to be
-committed. The trace files under `logs/` are local debugging artifacts.
-
-Compare two fingerprints:
-
-```bash
-uv run python -m fingerprinting compare \
-  fingerprints/<world-id>/<optimizer-a>/<fingerprint-a>.json \
-  fingerprints/<world-id>/<optimizer-b>/<fingerprint-b>.json
-```
+committed.
 
 Rebuild the centralized web index from committed fingerprints:
 
@@ -96,5 +85,22 @@ Rebuild the centralized web index from committed fingerprints:
 uv run python -m fingerprinting index
 ```
 
-The v1 fingerprint contains direction, scale, trajectory, and matrix-structure
-blocks. Curvature/Hessian probes are intentionally deferred.
+## Fingerprint schema
+
+Fingerprint JSON artifacts follow `schemas/fingerprint.schema.json`. A
+fingerprint is one training run plus an ordered list of scalar metric snapshots:
+
+```text
+task + model + optimizer + snapshots
+```
+
+Each snapshot is computed after an optimizer step at `snapshot_interval`, plus
+the final step if needed. Sampling settings such as `max_steps`,
+`snapshot_interval`, and `svd_max_dim` are part of the task definition, not a
+separate probe block. The snapshot metrics include direction, scale,
+trajectory, and matrix-structure scalars. Curvature/Hessian probes are
+intentionally deferred.
+
+Weights, updates, gradients, tensors, aggregate vectors, and normalized vectors
+are not serialized. They are only used temporarily while computing scalar
+snapshot metrics.

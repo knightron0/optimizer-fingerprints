@@ -8,27 +8,22 @@ from typing import Any
 
 DEFAULT_FINGERPRINT_DIR = Path("fingerprints")
 DEFAULT_INDEX_PATH = Path("web/public/fingerprints.json")
-DEFAULT_TRACE_DIR = Path("logs/traces")
-
-
 def stable_json_hash(payload: dict[str, Any], length: int = 10) -> str:
     encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()[:length]
 
 
-def fingerprint_id(*, world_id: str, optimizer_name: str, seed: int, probe: dict[str, Any], optimizer: dict[str, Any]) -> str:
+def fingerprint_id(*, task: dict[str, Any], optimizer_name: str, optimizer: dict[str, Any]) -> str:
     hash_payload = {
-        "world_id": world_id,
+        "task": task,
         "optimizer": optimizer,
-        "seed": seed,
-        "probe": probe,
     }
     digest = stable_json_hash(hash_payload)
-    return f"{world_id}__{optimizer_name}__seed{seed}__{digest}"
+    return f"{task['id']}__{optimizer_name}__seed{task['seed']}__{digest}"
 
 
 def fingerprint_path(root: Path, fingerprint: dict[str, Any]) -> Path:
-    world_id = fingerprint["world"]["world_id"]
+    world_id = fingerprint["task"]["id"]
     optimizer_name = fingerprint["optimizer"]["name"]
     return root / world_id / optimizer_name / f"{fingerprint['fingerprint_id']}.json"
 
@@ -44,21 +39,23 @@ def rebuild_index(fingerprint_root: Path, index_path: Path) -> dict[str, Any]:
     entries = []
     for path in sorted(fingerprint_root.glob("*/*/*.json")):
         fingerprint = json.loads(path.read_text())
+        if fingerprint.get("schema") != "optimizer_fingerprint":
+            continue
         entries.append(
             {
                 "fingerprint_id": fingerprint["fingerprint_id"],
-                "schema_version": fingerprint["schema_version"],
-                "world_id": fingerprint["world"]["world_id"],
+                "schema": fingerprint["schema"],
+                "task_id": fingerprint["task"]["id"],
                 "optimizer": fingerprint["optimizer"]["name"],
                 "optimizer_family": fingerprint["optimizer"]["family"],
-                "seed": fingerprint["world"]["seed"],
-                "feature_count": len(fingerprint["feature_names"]),
+                "seed": fingerprint["task"]["seed"],
+                "snapshot_count": len(fingerprint["snapshots"]),
                 "path": path.as_posix(),
             }
         )
 
     index = {
-        "schema_version": "fingerprint_index_v1",
+        "schema": "fingerprint_index",
         "fingerprint_root": fingerprint_root.as_posix(),
         "fingerprints": entries,
     }

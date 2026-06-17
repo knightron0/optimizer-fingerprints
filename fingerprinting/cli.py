@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import asdict
 from pathlib import Path
 
 import torch
@@ -12,7 +11,6 @@ from tqdm import tqdm
 from .artifacts import (
     DEFAULT_FINGERPRINT_DIR,
     DEFAULT_INDEX_PATH,
-    DEFAULT_TRACE_DIR,
     fingerprint_id,
     rebuild_index,
     write_fingerprint,
@@ -31,9 +29,7 @@ def parse_args() -> argparse.Namespace:
     run.add_argument("--seed", type=int, default=0)
     run.add_argument("--batch-size", type=int, default=128)
     run.add_argument("--max-steps", type=int, default=300)
-    run.add_argument("--log-interval", type=int, default=10)
-    run.add_argument("--checkpoint-interval", type=int, default=50)
-    run.add_argument("--matrix-probe-interval", type=int, default=25)
+    run.add_argument("--snapshot-interval", type=int, default=25)
     run.add_argument("--svd-max-dim", type=int, default=512)
     run.add_argument(
         "--set",
@@ -47,7 +43,6 @@ def parse_args() -> argparse.Namespace:
     run.add_argument("--data-dir", type=Path, default=Path("data"))
     run.add_argument("--fingerprint-dir", type=Path, default=DEFAULT_FINGERPRINT_DIR)
     run.add_argument("--index-path", type=Path, default=DEFAULT_INDEX_PATH)
-    run.add_argument("--trace-dir", type=Path, default=DEFAULT_TRACE_DIR)
     run.add_argument("--num-workers", type=int, default=0)
     run.add_argument("--no-index", action="store_true", help="Write the fingerprint but do not rebuild the web index")
 
@@ -72,9 +67,7 @@ def run_command(args: argparse.Namespace) -> None:
     )
     probe_config = ProbeConfig(
         max_steps=args.max_steps,
-        log_interval=args.log_interval,
-        checkpoint_interval=args.checkpoint_interval,
-        matrix_probe_interval=args.matrix_probe_interval,
+        snapshot_interval=args.snapshot_interval,
         svd_max_dim=args.svd_max_dim,
     )
 
@@ -85,29 +78,25 @@ def run_command(args: argparse.Namespace) -> None:
         overrides=args.overrides,
     )
     optimizer_payload = optimizer_entry.to_dict()
-    world_payload = {**asdict(world_config), "data_dir": str(world_config.data_dir)}
-    probe_payload = asdict(probe_config)
+    task_payload = {
+        "id": world_config.world_id,
+        "dataset": world_config.dataset,
+        "batch_size": world_config.batch_size,
+        "seed": world_config.seed,
+        "max_steps": probe_config.max_steps,
+        "snapshot_interval": probe_config.snapshot_interval,
+        "svd_max_dim": probe_config.svd_max_dim,
+    }
+    model_payload = {
+        "id": world_config.model,
+    }
     run_id = fingerprint_id(
-        world_id=world_config.world_id,
+        task=task_payload,
         optimizer_name=optimizer_entry.name,
-        seed=args.seed,
-        probe=probe_payload,
         optimizer=optimizer_payload,
     )
-    trace_dir = args.trace_dir / world_config.world_id / optimizer_entry.name / run_id
-    trace_dir.mkdir(parents=True, exist_ok=True)
-    trace_path = trace_dir / "trace.jsonl"
-    config_payload = {
-        "run_id": run_id,
-        "fingerprint_id": run_id,
-        "world": world_payload,
-        "optimizer": optimizer_payload,
-        "probe": probe_payload,
-        "device": str(device),
-    }
-    (trace_dir / "config.json").write_text(json.dumps(config_payload, indent=2, sort_keys=True) + "\n")
 
-    accumulator = FingerprintAccumulator(model=model, probe_config=probe_config, trace_path=trace_path)
+    accumulator = FingerprintAccumulator(model=model, probe_config=probe_config)
     model.train()
     step = 0
     progress = tqdm(total=probe_config.max_steps, desc=f"fingerprint:{args.optimizer}")
@@ -133,8 +122,9 @@ def run_command(args: argparse.Namespace) -> None:
         {
             "run_id": run_id,
             "fingerprint_id": run_id,
-            "world": config_payload["world"],
-            "optimizer": config_payload["optimizer"],
+            "task": task_payload,
+            "model": model_payload,
+            "optimizer": optimizer_payload,
         }
     )
     fingerprint_path = write_fingerprint(args.fingerprint_dir, fingerprint)
@@ -148,7 +138,6 @@ def run_command(args: argparse.Namespace) -> None:
             {
                 "fingerprint": str(fingerprint_path),
                 "index": None if index_path is None else str(index_path),
-                "trace": str(trace_path),
             },
             indent=2,
         )

@@ -1,0 +1,428 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { formatNumber, loadFingerprints } from '../lib/data';
+
+const fingerprints = loadFingerprints();
+const comparable = fingerprints.filter((fingerprint) => fingerprint.full);
+---
+
+<Layout title="Compare optimizer fingerprints">
+	<section class="compare-shell" data-compare-root>
+		<div class="compare-frame compare-top-frame">
+			<div class="compare-panes">
+				<article class="compare-pane">
+					<div class="field pane-picker">
+						<label for="left-fingerprint">Left fingerprint</label>
+						<select id="left-fingerprint" data-left></select>
+					</div>
+					<div class="pane-body" data-left-pane>
+						<div class="pane-name mono">empty</div>
+						<dl class="pane-facts">
+							<div>
+								<dt>world</dt>
+								<dd data-left-world>n/a</dd>
+							</div>
+							<div>
+								<dt>seed</dt>
+								<dd data-left-seed>n/a</dd>
+							</div>
+							<div>
+								<dt>features</dt>
+								<dd data-left-features>n/a</dd>
+							</div>
+							<div>
+								<dt>path</dt>
+								<dd data-left-path>n/a</dd>
+							</div>
+						</dl>
+					</div>
+				</article>
+
+				<article class="compare-pane">
+					<div class="field pane-picker">
+						<label for="right-fingerprint">Right fingerprint</label>
+						<select id="right-fingerprint" data-right></select>
+					</div>
+					<div class="pane-body" data-right-pane>
+						<div class="pane-name mono">empty</div>
+						<dl class="pane-facts">
+							<div>
+								<dt>world</dt>
+								<dd data-right-world>n/a</dd>
+							</div>
+							<div>
+								<dt>seed</dt>
+								<dd data-right-seed>n/a</dd>
+							</div>
+							<div>
+								<dt>features</dt>
+								<dd data-right-features>n/a</dd>
+							</div>
+							<div>
+								<dt>path</dt>
+								<dd data-right-path>n/a</dd>
+							</div>
+						</dl>
+					</div>
+				</article>
+			</div>
+
+		</div>
+
+		<div data-empty class="empty compare-empty" hidden>
+			No comparable fingerprints are available yet. Run fingerprints and rebuild the index to
+			populate this page.
+		</div>
+
+		<div data-result hidden class="compare-frame compare-result-frame">
+			<div class="compare-result">
+				<div class="compare-section">
+					<h2 class="section-title">Summary <span data-world></span></h2>
+					<div class="stat-grid">
+						<div class="stat">
+							<div class="stat-label">Distance</div>
+							<div class="stat-value num" data-distance>{formatNumber(0)}</div>
+						</div>
+						<div class="stat">
+							<div class="stat-label">Cosine</div>
+							<div class="stat-value num" data-cosine>{formatNumber(0)}</div>
+						</div>
+						<div class="stat">
+							<div class="stat-label">Features</div>
+							<div class="stat-value num" data-features>0</div>
+						</div>
+						<div class="stat">
+							<div class="stat-label">Schema</div>
+							<div class="stat-value mono" data-schema>n/a</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="compare-section">
+					<h2 class="section-title">Blocks <span>normalized vector contribution</span></h2>
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th>Block</th>
+									<th class="num">Distance</th>
+									<th class="num">Left norm</th>
+									<th class="num">Right norm</th>
+								</tr>
+							</thead>
+							<tbody data-blocks></tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="compare-section">
+					<h2 class="section-title">Feature deltas <span>largest absolute difference first</span></h2>
+					<div class="table-wrap">
+						<table>
+							<thead>
+								<tr>
+									<th>Metric</th>
+									<th class="num">Left</th>
+									<th class="num">Right</th>
+									<th class="num">Delta</th>
+									<th>Magnitude</th>
+								</tr>
+							</thead>
+							<tbody data-deltas></tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+		</div>
+	</section>
+</Layout>
+
+<style>
+	.compare-shell {
+		display: grid;
+		gap: 16px;
+		padding: 10px 28px 0;
+	}
+
+	.compare-frame {
+		position: relative;
+		padding: 18px;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+	}
+
+	.compare-frame::before {
+		position: absolute;
+		inset: 8px;
+		border: 1px solid var(--line-strong);
+		content: '';
+		pointer-events: none;
+	}
+
+	.compare-top-frame {
+		padding-bottom: 20px;
+	}
+
+	.compare-panes {
+		position: relative;
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		min-height: 360px;
+		border: 1px solid var(--line);
+		background: color-mix(in srgb, var(--paper) 92%, white 8%);
+	}
+
+	.compare-panes::before {
+		position: absolute;
+		inset: 10px;
+		border: 1px solid var(--line);
+		content: '';
+		pointer-events: none;
+	}
+
+	.compare-pane {
+		display: grid;
+		grid-template-rows: auto 1fr;
+		min-width: 0;
+		background: var(--paper);
+	}
+
+	.compare-pane + .compare-pane {
+		border-left: 1px solid var(--line-strong);
+	}
+
+	.pane-picker {
+		padding: 10px 12px 12px;
+		border-bottom: 1px solid var(--line-strong);
+		background: color-mix(in srgb, var(--paper) 90%, white 10%);
+	}
+
+	.pane-body {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 32px;
+		min-height: 260px;
+		padding: 18px 18px 16px;
+	}
+
+	.pane-name {
+		overflow-wrap: anywhere;
+		font-size: clamp(22px, 4vw, 44px);
+		line-height: 0.95;
+	}
+
+	.pane-facts {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 0;
+		margin: 0;
+		border-top: 1px solid var(--line);
+		border-left: 1px solid var(--line);
+		font-family: var(--sans);
+	}
+
+	.pane-facts div {
+		min-width: 0;
+		border-right: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		padding: 9px;
+	}
+
+	.pane-facts dt {
+		margin: 0 0 5px;
+		color: var(--muted);
+		font-size: 10px;
+		text-transform: uppercase;
+		letter-spacing: 0.08em;
+	}
+
+	.pane-facts dd {
+		margin: 0;
+		overflow-wrap: anywhere;
+		font-family: var(--mono);
+		font-size: 12px;
+	}
+
+	.compare-section {
+		border-top: 1px solid var(--line);
+		padding-top: 18px;
+		margin-top: 22px;
+	}
+
+	.compare-result {
+		position: relative;
+		padding: 6px;
+	}
+
+	.compare-empty {
+		margin-top: 0;
+	}
+
+	.compare-result-frame {
+		padding: 18px;
+	}
+
+	@media (max-width: 760px) {
+		.compare-shell {
+			padding-inline: 16px;
+		}
+
+		.compare-frame {
+			padding: 14px;
+		}
+
+		.compare-panes {
+			grid-template-columns: 1fr;
+		}
+
+		.compare-pane + .compare-pane {
+			border-top: 1px solid var(--line-strong);
+			border-left: 0;
+		}
+	}
+</style>
+
+<script define:vars={{ comparable }}>
+	const fingerprints = comparable;
+	const root = document.querySelector('[data-compare-root]');
+	const leftSelect = root?.querySelector('[data-left]');
+	const rightSelect = root?.querySelector('[data-right]');
+	const empty = root?.querySelector('[data-empty]');
+	const result = root?.querySelector('[data-result]');
+	const blocksBody = root?.querySelector('[data-blocks]');
+	const deltasBody = root?.querySelector('[data-deltas]');
+
+	const format = (value) => {
+		if (!Number.isFinite(value)) return 'n/a';
+		const abs = Math.abs(value);
+		if (abs !== 0 && (abs < 0.001 || abs >= 10000)) return value.toExponential(3);
+		return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
+	};
+
+	const labelFor = (fingerprint) => {
+		const full = fingerprint.full;
+		const optimizer = full?.optimizer?.name ?? fingerprint.optimizer;
+		const world = full?.world?.world_id ?? fingerprint.world_id;
+		const seed = full?.world?.seed ?? fingerprint.seed;
+		return `${optimizer} / ${world} / seed ${seed}`;
+	};
+
+	const optionFor = (fingerprint, index) => {
+		const option = document.createElement('option');
+		option.value = String(index);
+		option.textContent = labelFor(fingerprint);
+		return option;
+	};
+
+	const norm = (values) => Math.sqrt(values.reduce((sum, value) => sum + value * value, 0));
+	const dot = (left, right) => left.reduce((sum, value, index) => sum + value * right[index], 0);
+	const distance = (left, right) => norm(left.map((value, index) => value - right[index]));
+
+	function render() {
+		if (!leftSelect || !rightSelect || !result || !empty) return;
+		const leftEntry = fingerprints[Number(leftSelect.value)];
+		const rightEntry = fingerprints[Number(rightSelect.value)];
+		renderPane('left', leftEntry);
+		renderPane('right', rightEntry);
+
+		if (fingerprints.length < 2) {
+			empty.hidden = false;
+			result.hidden = true;
+			return;
+		}
+
+		const left = leftEntry?.full;
+		const right = rightEntry?.full;
+		if (!left || !right || left.schema_version !== right.schema_version || left.feature_names.join('\n') !== right.feature_names.join('\n')) {
+			empty.hidden = false;
+			empty.textContent = 'Selected fingerprints cannot be compared because their schema or feature set differs.';
+			result.hidden = true;
+			return;
+		}
+
+		empty.hidden = true;
+		result.hidden = false;
+
+		const dist = distance(left.normalized_vector, right.normalized_vector);
+		const cosine = dot(left.normalized_vector, right.normalized_vector) / Math.max(norm(left.normalized_vector) * norm(right.normalized_vector), 1e-20);
+		root.querySelector('[data-distance]').textContent = format(dist);
+		root.querySelector('[data-cosine]').textContent = format(cosine);
+		root.querySelector('[data-features]').textContent = String(left.feature_names.length);
+		root.querySelector('[data-schema]').textContent = left.schema_version;
+		root.querySelector('[data-world]').textContent = String(left.world?.world_id ?? '');
+
+		renderBlocks(left, right);
+		renderDeltas(left, right);
+	}
+
+	function renderPane(side, entry) {
+		const full = entry?.full;
+		const prefix = `[data-${side}`;
+		const name = full?.optimizer?.name ?? entry?.optimizer ?? 'empty';
+		root.querySelector(`${prefix}-pane] .pane-name`).textContent = name;
+		root.querySelector(`${prefix}-world]`).textContent = String(full?.world?.world_id ?? entry?.world_id ?? 'n/a');
+		root.querySelector(`${prefix}-seed]`).textContent = String(full?.world?.seed ?? entry?.seed ?? 'n/a');
+		root.querySelector(`${prefix}-features]`).textContent = String(full?.feature_names?.length ?? entry?.feature_count ?? 'n/a');
+		root.querySelector(`${prefix}-path]`).textContent = format(full?.path_length);
+	}
+
+	function renderBlocks(left, right) {
+		const blocks = [...new Set(left.feature_names.map((name) => name.split('.', 1)[0]))];
+		blocksBody.replaceChildren(
+			...blocks.map((block) => {
+				const indices = left.feature_names
+					.map((name, index) => (name.startsWith(`${block}.`) ? index : -1))
+					.filter((index) => index >= 0);
+				const leftValues = indices.map((index) => left.normalized_vector[index]);
+				const rightValues = indices.map((index) => right.normalized_vector[index]);
+				const row = document.createElement('tr');
+				row.innerHTML = `
+					<td class="mono">${block}</td>
+					<td class="num">${format(distance(leftValues, rightValues))}</td>
+					<td class="num">${format(norm(leftValues))}</td>
+					<td class="num">${format(norm(rightValues))}</td>
+				`;
+				return row;
+			}),
+		);
+	}
+
+	function renderDeltas(left, right) {
+		const rows = left.feature_names
+			.map((name) => {
+				const l = left.features[name] ?? 0;
+				const r = right.features[name] ?? 0;
+				return { name, l, r, delta: r - l, magnitude: Math.abs(r - l) };
+			})
+			.sort((a, b) => b.magnitude - a.magnitude);
+		const maxMagnitude = Math.max(...rows.map((row) => row.magnitude), 1e-20);
+		deltasBody.replaceChildren(
+			...rows.map((item) => {
+				const row = document.createElement('tr');
+				const width = Math.max(2, (item.magnitude / maxMagnitude) * 100);
+				row.innerHTML = `
+					<td class="mono">${item.name}</td>
+					<td class="num">${format(item.l)}</td>
+					<td class="num">${format(item.r)}</td>
+					<td class="num">${format(item.delta)}</td>
+					<td><div class="metric-bar"><span class="num">${format(item.magnitude)}</span><span class="bar-track"><span class="bar-fill" style="--w: ${width}%"></span></span></div></td>
+				`;
+				return row;
+			}),
+		);
+	}
+
+	if (leftSelect && rightSelect) {
+		fingerprints.forEach((fingerprint, index) => {
+			leftSelect.append(optionFor(fingerprint, index));
+			rightSelect.append(optionFor(fingerprint, index));
+		});
+		if (fingerprints.length > 1) {
+			rightSelect.value = '1';
+		}
+		leftSelect.addEventListener('change', render);
+		rightSelect.addEventListener('change', render);
+		render();
+	}
+</script>
