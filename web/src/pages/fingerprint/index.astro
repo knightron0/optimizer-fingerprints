@@ -13,52 +13,21 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 			) : (
 				<>
 					<header class="fingerprint-topbar">
-						<div class="run-meta" data-run-meta></div>
-						<div class="field">
-							<label for="fingerprint-select">Fingerprint</label>
-							<select id="fingerprint-select" data-fingerprint-select>
+						<div class="field optimizer-picker">
+							<label class="sr-only" for="fingerprint-select">Fingerprint</label>
+							<button type="button" class="optimizer-trigger" data-optimizer-trigger aria-expanded="false" aria-haspopup="listbox"></button>
+							<select class="sr-only" id="fingerprint-select" data-fingerprint-select tabindex="-1">
 								{fingerprints.map(({ full }, index) => (
 									<option value={String(index)}>
-										{full.optimizer.name} / {full.task.id} / seed {full.task.seed}
+										{full.optimizer.name}
 									</option>
 								))}
 							</select>
+							<div class="optimizer-menu" data-optimizer-menu role="listbox" aria-hidden="true"></div>
 						</div>
 					</header>
 
-					<div class="pane-frame">
-						<div class="pane-inner">
-							<section class="relative-pane">
-								<div class="selector-bar">
-									<h2 class="selector-title">Relative Update Geometry</h2>
-									<div class="selector-controls">
-										<div class="field">
-											<label class="sr-only" for="parameter-set-select">Parameter set</label>
-											<select id="parameter-set-select" data-parameter-set-select>
-												<option value="conv_weights">conv weights</option>
-												<option value="conv_biases">conv biases</option>
-												<option value="batchnorm_weights">batchnorm weights</option>
-												<option value="batchnorm_biases">batchnorm biases</option>
-												<option value="all_weights">all weights</option>
-												<option value="all_biases">all biases</option>
-												<option value="layer1">layer1</option>
-												<option value="layer2">layer2</option>
-												<option value="layer3">layer3</option>
-												<option value="layer4">layer4</option>
-												<option value="downsample">downsample</option>
-												<option value="fc">fc</option>
-												<option value="custom">custom</option>
-											</select>
-										</div>
-										<button type="button" data-custom-edit>Edit custom</button>
-										<div class="set-summary" data-set-summary></div>
-									</div>
-								</div>
-
-								<div class="chart-stack" data-chart-stack></div>
-							</section>
-						</div>
-					</div>
+					<div class="overview-card" data-overview-card></div>
 
 					<div class="custom-modal" data-custom-modal aria-hidden="true">
 						<div class="custom-dialog">
@@ -111,29 +80,112 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	.fingerprint-topbar {
 		display: flex;
 		gap: 12px;
-		align-items: flex-start;
-		justify-content: space-between;
-		margin-bottom: 12px;
+		align-items: center;
+		justify-content: center;
+		margin-bottom: 18px;
 	}
 
 	.fingerprint-topbar > .field {
-		flex: 0 1 360px;
-		min-width: 260px;
+		flex: 0 1 480px;
+		min-width: 220px;
 	}
 
-	.run-meta {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
+	.optimizer-picker {
+		position: relative;
+	}
+
+	.fingerprint-shell select {
+		appearance: none;
+		min-height: 34px;
+		border: 1px solid var(--line);
+		background:
+			linear-gradient(45deg, transparent 50%, var(--muted) 50%) calc(100% - 15px) 14px / 5px 5px no-repeat,
+			linear-gradient(135deg, var(--muted) 50%, transparent 50%) calc(100% - 10px) 14px / 5px 5px no-repeat,
+			var(--paper);
+		padding: 6px 28px 6px 9px;
+		color: var(--ink);
+		font-size: 12px;
+		line-height: 1.2;
+	}
+
+	.fingerprint-shell select:hover {
+		border-color: var(--line-strong);
+	}
+
+	.fingerprint-shell select:focus {
+		border-color: var(--ink);
+		outline: 0;
+	}
+
+	.optimizer-trigger {
+		display: block;
+		width: 100%;
+		min-height: 44px;
+		border: 0;
+		background: transparent;
+		color: var(--ink);
+		padding: 2px 32px;
+		font-family: var(--sans);
+		font-size: 28px;
+		font-weight: 650;
+		letter-spacing: 0;
+		line-height: 1.1;
+		text-align: center;
+		cursor: pointer;
+	}
+
+	.optimizer-trigger::after {
+		display: inline-block;
+		width: 7px;
+		height: 7px;
+		border-right: 1.5px solid var(--muted);
+		border-bottom: 1.5px solid var(--muted);
+		margin-left: 12px;
+		content: '';
+		transform: translateY(-4px) rotate(45deg);
+	}
+
+	.optimizer-trigger:hover,
+	.optimizer-trigger:focus {
+		color: var(--accent);
+		outline: 0;
+	}
+
+	.optimizer-menu {
+		position: absolute;
+		top: calc(100% + 8px);
+		right: 0;
+		z-index: 20;
+		display: none;
+		width: min(260px, calc(100vw - 56px));
+		max-height: 360px;
+		overflow: auto;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		box-shadow: 0 12px 28px rgb(31 27 22 / 0.12);
 		font-family: var(--sans);
 	}
 
-	.run-meta span {
-		border: 1px solid var(--line);
-		padding: 2px 7px;
-		background: var(--paper);
-		color: var(--muted);
-		font-size: 11px;
+	.optimizer-menu[aria-hidden='false'] {
+		display: block;
+	}
+
+	.optimizer-option {
+		display: block;
+		width: 100%;
+		border: 0;
+		border-bottom: 1px solid var(--line);
+		background: transparent;
+		padding: 8px 10px;
+		color: var(--ink);
+		font-size: 12px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.optimizer-option:hover,
+	.optimizer-option[aria-selected='true'] {
+		background: var(--accent-soft);
 	}
 
 	.relative-pane {
@@ -148,17 +200,39 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		align-items: center;
 		justify-content: space-between;
 		border-bottom: 1px solid var(--line);
-		padding: 0 12px 10px;
+		padding: 10px 12px;
+	}
+
+	.metric-summary {
+		display: flex;
+		gap: 12px;
+		align-items: center;
+		justify-content: space-between;
+		padding: 10px 12px;
+	}
+
+	.metric-summary-text {
+		display: flex;
+		gap: 8px;
+		align-items: baseline;
+		min-width: 0;
+	}
+
+	.metric-count {
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 11px;
+		white-space: nowrap;
 	}
 
 	.selector-title {
 		margin: 0;
 		color: var(--ink);
 		font-family: var(--sans);
-		font-size: 20px;
+		font-size: 16px;
 		font-weight: 600;
 		letter-spacing: 0;
-		line-height: 1.2;
+		line-height: 1.25;
 		white-space: nowrap;
 	}
 
@@ -167,6 +241,7 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		gap: 10px;
 		align-items: center;
 		justify-content: flex-end;
+		width: 100%;
 		min-width: 0;
 	}
 
@@ -176,6 +251,7 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	}
 
 	.selector-bar button,
+	.metric-summary button,
 	.scale-toggle button,
 	.custom-dialog button {
 		min-height: 34px;
@@ -206,16 +282,163 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		white-space: nowrap;
 	}
 
-	.chart-stack {
+	.overview-card {
+		border: 1px solid var(--line);
+		background: var(--paper);
+		font-family: var(--sans);
+	}
+
+	.overview-card > header {
 		display: flex;
-		flex-wrap: wrap;
 		gap: 12px;
+		align-items: flex-start;
+		justify-content: space-between;
+		border-bottom: 1px solid var(--line);
+		padding: 10px 12px;
+	}
+
+	.overview-card h2 {
+		margin: 0;
+		color: var(--ink);
+		font-size: 16px;
+		font-weight: 600;
+		letter-spacing: 0;
+		line-height: 1.25;
+	}
+
+	.overview-card .field {
+		flex: 0 0 min(260px, 36vw);
+		min-width: 200px;
+	}
+
+	.overview-note {
+		margin-top: 3px;
+		color: var(--muted);
+		font-size: 11px;
+	}
+
+	.overview-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(180px, 1fr));
+	}
+
+	.overview-metric {
+		min-width: 0;
+		border-right: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		padding: 12px;
+	}
+
+	.overview-metric:nth-child(3n) {
+		border-right: 0;
+	}
+
+	.overview-metric:nth-last-child(-n + 3) {
+		border-bottom: 0;
+	}
+
+	.overview-metric-top {
+		min-height: 34px;
+	}
+
+	.overview-label {
+		color: var(--ink);
+		font-size: 12px;
+		font-weight: 600;
+		line-height: 1.25;
+	}
+
+	.overview-description {
+		margin-top: 4px;
+		color: var(--muted);
+		font-size: 11px;
+		line-height: 1.35;
+	}
+
+	.overview-direction {
+		margin-top: 3px;
+		color: color-mix(in srgb, var(--muted) 82%, var(--ink) 18%);
+		font-size: 11px;
+		line-height: 1.3;
+	}
+
+	.overview-value {
+		margin-top: 8px;
+		font-family: var(--mono);
+		font-size: 18px;
+		line-height: 1.1;
+		overflow-wrap: anywhere;
+	}
+
+	.overview-percentile {
+		display: flex;
+		gap: 10px;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 6px;
+		color: var(--muted);
+		font-size: 11px;
+	}
+
+	.overview-swatch {
+		position: relative;
+		width: 100%;
+		height: 8px;
+		background: color-mix(in srgb, var(--paper) 82%, var(--line) 18%);
+	}
+
+	.overview-swatch::after {
+		position: absolute;
+		top: 0;
+		bottom: 0;
+		left: 0;
+		width: var(--percentile-width, 0%);
+		background: var(--percentile-color, #bfb4a4);
+		content: '';
+	}
+
+	.overview-rank {
+		flex: 0 0 auto;
+		font-family: var(--mono);
+		color: var(--muted);
+	}
+
+	.metric-panes {
+		display: grid;
+		gap: 16px;
+		margin-top: 16px;
+	}
+
+	.chart-stack {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.metric-section {
+		border: 1px solid var(--line);
+		background: var(--paper);
+		font-family: var(--sans);
+	}
+
+	.metric-section.is-collapsed .selector-bar,
+	.metric-section.is-collapsed .chart-stack {
+		display: none;
 	}
 
 	.chart-card {
-		flex: 1 1 calc(50% - 6px);
-		min-width: 320px;
+		min-width: 0;
+		border-right: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
 		background: var(--paper);
+	}
+
+	.chart-card:nth-child(2n) {
+		border-right: 0;
+	}
+
+	.chart-card:last-child,
+	.chart-card:nth-last-child(2):nth-child(odd) {
+		border-bottom: 0;
 	}
 
 	.chart-card > header {
@@ -223,7 +446,9 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		gap: 12px;
 		align-items: flex-start;
 		justify-content: space-between;
-		padding: 10px 12px;
+		border-bottom: 1px solid var(--line);
+		min-height: 66px;
+		padding: 10px 12px 8px;
 		font-family: var(--sans);
 	}
 
@@ -234,14 +459,24 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 
 	.chart-card h3 {
 		margin: 0;
-		font-size: 13px;
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
+		color: var(--ink);
+		font-size: 12px;
+		font-weight: 600;
+		letter-spacing: 0;
+		line-height: 1.25;
 	}
 
 	.chart-subtitle {
 		margin-top: 4px;
 		color: var(--muted);
+		font-size: 11px;
+		line-height: 1.3;
+		overflow-wrap: anywhere;
+	}
+
+	.chart-note:not(:empty) {
+		border-top: 1px solid var(--line);
+		padding: 8px 12px;
 		font-size: 11px;
 	}
 
@@ -251,8 +486,9 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	}
 
 	.main-chart {
-		height: 220px;
-		min-height: 220px;
+		height: 210px;
+		min-height: 210px;
+		background: color-mix(in srgb, var(--paper) 94%, white 6%);
 	}
 
 	.main-chart > div {
@@ -353,6 +589,8 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	@media (max-width: 760px) {
 		.fingerprint-topbar,
 		.selector-bar,
+		.metric-summary,
+		.metric-summary-text,
 		.custom-tools {
 			align-items: stretch;
 			flex-direction: column;
@@ -364,6 +602,57 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		.custom-option {
 			width: 100%;
 			min-width: 0;
+		}
+
+		.optimizer-trigger {
+			min-height: 40px;
+			padding-right: 24px;
+			padding-left: 24px;
+			font-size: 30px;
+		}
+
+		.optimizer-menu {
+			right: 50%;
+			transform: translateX(50%);
+		}
+
+		.chart-stack {
+			grid-template-columns: 1fr;
+		}
+
+		.chart-card,
+		.chart-card:nth-child(2n),
+		.chart-card:nth-last-child(2):nth-child(odd) {
+			border-right: 0;
+			border-bottom: 1px solid var(--line);
+		}
+
+		.chart-card:last-child {
+			border-bottom: 0;
+		}
+
+		.overview-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.overview-card > header {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.overview-card .field {
+			width: 100%;
+			min-width: 0;
+		}
+
+		.overview-metric,
+		.overview-metric:nth-child(3n),
+		.overview-metric:nth-last-child(-n + 3) {
+			border-bottom: 1px solid var(--line);
+		}
+
+		.overview-metric:last-child {
+			border-bottom: 0;
 		}
 
 		.selector-title {
@@ -391,8 +680,8 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	const fingerprints = JSON.parse(document.getElementById('fingerprint-data').textContent);
 	const root = document.querySelector('[data-fingerprint-root]');
 	const fingerprintSelect = root?.querySelector('[data-fingerprint-select]');
-	const setSelect = root?.querySelector('[data-parameter-set-select]');
-	const customEdit = root?.querySelector('[data-custom-edit]');
+	const optimizerTrigger = root?.querySelector('[data-optimizer-trigger]');
+	const optimizerMenu = root?.querySelector('[data-optimizer-menu]');
 	const customModal = root?.querySelector('[data-custom-modal]');
 	const customClose = root?.querySelector('[data-custom-close]');
 	const customFilter = root?.querySelector('[data-custom-filter]');
@@ -405,33 +694,202 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		update_grad_norm_ratio: 'log',
 		update_theta_norm_ratio: 'log',
 	};
+	let selectedParameterSet = 'conv_weights';
+	let overviewParameterSet = 'all_parameters';
 	const chartInstances = new Map();
-
-	const metricInfo = {
-		update_neg_grad_cos: {
-			title: 'Gradient alignment',
-			subtitle: 'mean cos(update, -grad) · update_neg_grad_cos',
+	const openMetricGroups = new Set();
+	const parameterSetOptions = [
+		['all_parameters', 'all parameters'],
+		['conv_weights', 'conv weights'],
+		['conv_biases', 'conv biases'],
+		['batchnorm_weights', 'batchnorm weights'],
+		['batchnorm_biases', 'batchnorm biases'],
+		['all_weights', 'all weights'],
+		['all_biases', 'all biases'],
+		['layer1', 'layer1'],
+		['layer2', 'layer2'],
+		['layer3', 'layer3'],
+		['layer4', 'layer4'],
+		['downsample', 'downsample'],
+		['fc', 'fc'],
+	];
+	const chartParameterSetOptions = parameterSetOptions.filter(([value]) => value !== 'all_parameters').concat([['custom', 'custom']]);
+	const overviewMetrics = [
+		{
+			label: 'Gradient Alignment',
+			metric: 'update_neg_grad_cos',
+			family: 'direction',
+			description: 'Updates follow negative gradient.',
+			lowMeans: 'wandering',
+			higherMeans: 'more aligned',
 		},
-		update_prev_update_cos: {
-			title: 'Update consistency',
-			subtitle: 'mean cos(update_t, update_t-1) · update_prev_update_cos',
+		{
+			label: 'Update Persistence',
+			metric: 'update_prev_update_cos',
+			family: 'direction',
+			description: 'Updates keep direction over time.',
+			lowMeans: 'changes direction',
+			higherMeans: 'persistent updates',
 		},
-		update_grad_norm_ratio: {
-			title: 'Update / gradient',
-			subtitle: 'mean ||update|| / ||grad|| · update_grad_norm_ratio',
+		{
+			label: 'Gradient Amplification',
+			metric: 'update_grad_norm_ratio',
+			family: 'scale',
+			scale: 'log',
+			description: 'Update size per gradient size.',
+			lowMeans: 'damped',
+			higherMeans: 'amplified steps',
 		},
-		update_theta_norm_ratio: {
-			title: 'Update / weights',
-			subtitle: 'mean ||update|| / ||theta|| · update_theta_norm_ratio',
+		{
+			label: 'Relative Step Size',
+			metric: 'update_theta_norm_ratio',
+			family: 'scale',
+			scale: 'log',
+			description: 'Update size per weight size.',
+			lowMeans: 'small step',
+			higherMeans: 'larger steps',
 		},
-	};
-	const metrics = Object.keys(metricInfo);
+		{
+			label: 'Entrywise Coupling',
+			metric: 'update_abs_grad_abs_corr',
+			family: 'elementwise',
+			description: 'Large gradients get large updates.',
+			lowMeans: 'decoupled',
+			higherMeans: 'coupled',
+		},
+		{
+			label: 'Update Concentration',
+			metric: 'update_linf_l2_ratio',
+			family: 'elementwise',
+			description: 'Update mass sits in one coordinate.',
+			lowMeans: 'spread out',
+			higherMeans: 'concentrated',
+		},
+		{
+			label: 'Update Diffuseness',
+			metric: 'update_l1_l2_ratio',
+			family: 'elementwise',
+			description: 'Update mass spreads across coordinates.',
+			lowMeans: 'spiky',
+			higherMeans: 'diffuse',
+		},
+		{
+			label: 'Matrix Spread',
+			metric: 'update_stable_rank',
+			family: 'matrix',
+			description: 'Many singular directions carry mass.',
+			lowMeans: 'low-rank',
+			higherMeans: 'broad spread',
+		},
+		{
+			label: 'Orthogonality',
+			metric: 'update_orthogonality_error',
+			family: 'matrix',
+			invert: true,
+			description: 'Matrix updates stay balanced.',
+			lowMeans: 'balanced',
+			higherMeans: 'unbalanced',
+		},
+	];
+	const metricGroups = [
+		{
+			title: 'Relative Update Geometry',
+			metrics: {
+				update_neg_grad_cos: {
+					title: 'Gradient alignment',
+					subtitle: 'mean cos(update, -grad)',
+				},
+				update_prev_update_cos: {
+					title: 'Update consistency',
+					subtitle: 'mean cos(update_t, update_t-1)',
+				},
+				update_grad_norm_ratio: {
+					title: 'Update / gradient',
+					subtitle: 'mean ||update|| / ||grad||',
+				},
+				update_theta_norm_ratio: {
+					title: 'Update / weights',
+					subtitle: 'mean ||update|| / ||theta||',
+				},
+			},
+		},
+		{
+			title: 'Intrinsic Update Elementwise Geometry',
+			metrics: {
+				update_rms: {
+					title: 'Update RMS',
+					subtitle: 'mean root mean square update',
+				},
+				update_l1_l2_ratio: {
+					title: 'L1 / L2 shape',
+					subtitle: 'mean normalized ||update||_1 / ||update||_2',
+				},
+				update_linf_l2_ratio: {
+					title: 'L-inf / L2 concentration',
+					subtitle: 'mean ||update||_inf / ||update||_2',
+				},
+				update_zero_fraction: {
+					title: 'Zero fraction',
+					subtitle: 'mean fraction of near-zero update entries',
+				},
+				update_kurtosis: {
+					title: 'Update kurtosis',
+					subtitle: 'mean centered fourth moment / variance^2',
+				},
+				update_abs_grad_abs_corr: {
+					title: '|update| / |grad| correlation',
+					subtitle: 'mean corr(abs(update), abs(grad))',
+				},
+				update_sign_grad_agreement: {
+					title: 'Sign-gradient agreement',
+					subtitle: 'mean sign(update) matches sign(-grad)',
+				},
+			},
+		},
+		{
+			title: 'Intrinsic Update Matrix Geometry',
+			metrics: {
+				update_stable_rank: {
+					title: 'Stable rank',
+					subtitle: 'mean ||update||_F^2 / sigma_1^2',
+				},
+				update_spectral_concentration: {
+					title: 'Spectral concentration',
+					subtitle: 'mean sigma_1^2 / ||update||_F^2',
+				},
+				update_singular_value_spread: {
+					title: 'Singular value spread',
+					subtitle: 'mean sigma_1 / sigma_min',
+				},
+				update_orthogonality_error: {
+					title: 'Orthogonality error',
+					subtitle: 'mean scaled Gram deviation',
+				},
+				update_row_norm_cv: {
+					title: 'Row norm CV',
+					subtitle: 'mean coefficient of variation across row norms',
+				},
+				update_col_norm_cv: {
+					title: 'Column norm CV',
+					subtitle: 'mean coefficient of variation across column norms',
+				},
+			},
+		},
+	];
+	const metricInfo = Object.assign({}, ...metricGroups.map((group) => group.metrics));
 	const ratioMetrics = new Set(['update_grad_norm_ratio', 'update_theta_norm_ratio']);
 	const format = (value) => {
 		if (!Number.isFinite(value)) return 'n/a';
 		const abs = Math.abs(value);
 		if (abs !== 0 && (abs < 0.01 || abs >= 10000)) return value.toExponential(2);
 		return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
+	};
+	const formatOverviewValue = (value) => {
+		if (!Number.isFinite(value)) return 'n/a';
+		const abs = Math.abs(value);
+		if (abs !== 0 && abs < 0.01) return value < 0 ? '>-0.01' : '<0.01';
+		if (abs >= 10000) return value.toExponential(2);
+		return value.toLocaleString('en-US', { maximumFractionDigits: 2 });
 	};
 	const selectedFingerprint = () => fingerprints[Number(fingerprintSelect?.value ?? 0)]?.full;
 
@@ -440,25 +898,49 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		if (!fingerprint) return;
 		ensureCustomSelection(fingerprint);
 		renderMeta(fingerprint);
-		renderSetSummary(fingerprint);
-		renderCharts(fingerprint);
+		renderOverview(fingerprint);
 	}
 
 	function renderMeta(fingerprint) {
-		root.querySelector('[data-run-meta]').replaceChildren(
-			...[
-				fingerprint.optimizer.name,
-				fingerprint.task.id,
-				fingerprint.model.id,
-				`seed ${fingerprint.task.seed}`,
-				`${fingerprint.snapshots.length} snapshots`,
-				`${fingerprint.snapshots[0].parameters.length} params`,
-			].map((text) => {
-				const span = document.createElement('span');
-				span.textContent = text;
-				return span;
+		optimizerTrigger.textContent = fingerprint.optimizer.name;
+		optimizerTrigger.setAttribute('aria-label', `Current optimizer: ${fingerprint.optimizer.name}. Change optimizer`);
+		document.title = `${fingerprint.optimizer.name} - Fingerprint`;
+	}
+
+	function renderOptimizerMenu() {
+		optimizerMenu.replaceChildren(
+			...fingerprints.map(({ full }, index) => {
+				const option = document.createElement('button');
+				option.type = 'button';
+				option.className = 'optimizer-option';
+				option.setAttribute('role', 'option');
+				option.setAttribute('aria-selected', String(Number(fingerprintSelect?.value ?? 0) === index));
+				option.textContent = full.optimizer.name;
+				option.addEventListener('click', () => {
+					fingerprintSelect.value = String(index);
+					closeOptimizerMenu();
+					customNames.clear();
+					render();
+				});
+				return option;
 			}),
 		);
+	}
+
+	function openOptimizerMenu() {
+		renderOptimizerMenu();
+		optimizerMenu.setAttribute('aria-hidden', 'false');
+		optimizerTrigger.setAttribute('aria-expanded', 'true');
+	}
+
+	function closeOptimizerMenu() {
+		optimizerMenu.setAttribute('aria-hidden', 'true');
+		optimizerTrigger.setAttribute('aria-expanded', 'false');
+	}
+
+	function toggleOptimizerMenu() {
+		if (optimizerMenu.getAttribute('aria-hidden') === 'false') closeOptimizerMenu();
+		else openOptimizerMenu();
 	}
 
 	function ensureCustomSelection(fingerprint) {
@@ -474,9 +956,13 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	}
 
 	function selectedParameters(fingerprint) {
+		if (selectedParameterSet === 'custom') return fingerprint.snapshots[0].parameters.filter((parameter) => customNames.has(parameter.name));
+		return parameterSetParameters(fingerprint, selectedParameterSet);
+	}
+
+	function parameterSetParameters(fingerprint, set) {
 		const params = fingerprint.snapshots[0].parameters;
-		const set = setSelect?.value ?? 'conv_weights';
-		if (set === 'custom') return params.filter((parameter) => customNames.has(parameter.name));
+		if (set === 'all_parameters') return params;
 		const predicates = {
 			conv_weights: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.weight'),
 			conv_biases: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.bias'),
@@ -492,11 +978,6 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 			fc: (parameter) => parameter.name.startsWith('fc'),
 		};
 		return params.filter(predicates[set] ?? (() => false));
-	}
-
-	function renderSetSummary(fingerprint) {
-		const params = selectedParameters(fingerprint);
-		root.querySelector('[data-set-summary]').textContent = `Averaging ${params.length} parameter${params.length === 1 ? '' : 's'}.`;
 	}
 
 	function averagedSeries(fingerprint, metric) {
@@ -519,35 +1000,326 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		});
 	}
 
+	function overviewMetricsForFingerprint(fingerprint) {
+		return new Map(
+			overviewMetrics.map((spec) => {
+				const raw = weightedSnapshotMean(fingerprint, spec.metric, overviewParameterSet);
+				return [
+					spec.metric,
+					{
+						raw,
+						score: overviewScore(raw, spec),
+					},
+				];
+			}),
+		);
+	}
+
+	function weightedSnapshotMean(fingerprint, metric, parameterSet) {
+		const selected = parameterSetParameters(fingerprint, parameterSet);
+		const selectedNames = new Set(selected.map((parameter) => parameter.name));
+		const parameterWeights = new Map(selected.map((parameter) => [parameter.name, parameter.numel]));
+		const parameterValues = new Map();
+		for (const snapshot of fingerprint.snapshots) {
+			for (const parameter of snapshot.parameters) {
+				if (!selectedNames.has(parameter.name)) continue;
+				const value = parameter.metrics[metric];
+				if (!Number.isFinite(value)) continue;
+				const values = parameterValues.get(parameter.name) ?? [];
+				values.push(value);
+				parameterValues.set(parameter.name, values);
+			}
+		}
+		let weightedSum = 0;
+		let weightSum = 0;
+		for (const [name, values] of parameterValues) {
+			const weight = parameterWeights.get(name);
+			if (!Number.isFinite(weight) || weight <= 0 || values.length === 0) continue;
+			const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+			weightedSum += mean * weight;
+			weightSum += weight;
+		}
+		return weightSum > 0 ? weightedSum / weightSum : null;
+	}
+
+	function weightedSnapshotSeries(fingerprint, metric, parameterSet) {
+		const selected = parameterSetParameters(fingerprint, parameterSet);
+		const selectedNames = new Set(selected.map((parameter) => parameter.name));
+		const parameterWeights = new Map(selected.map((parameter) => [parameter.name, parameter.numel]));
+		return fingerprint.snapshots.map((snapshot) => {
+			let weightedSum = 0;
+			let weightSum = 0;
+			for (const parameter of snapshot.parameters) {
+				if (!selectedNames.has(parameter.name)) continue;
+				const value = parameter.metrics[metric];
+				const weight = parameterWeights.get(parameter.name);
+				if (!Number.isFinite(value) || !Number.isFinite(weight) || weight <= 0) continue;
+				weightedSum += value * weight;
+				weightSum += weight;
+			}
+			return {
+				step: snapshot.step,
+				value: weightSum > 0 ? weightedSum / weightSum : null,
+				count: weightSum > 0 ? selectedNames.size : 0,
+			};
+		});
+	}
+
+	function overviewScore(raw, spec) {
+		if (!Number.isFinite(raw)) return null;
+		let score = raw;
+		if (spec.scale === 'log') {
+			if (raw <= 0) return null;
+			score = Math.log10(raw);
+		}
+		return spec.invert ? -score : score;
+	}
+
+	function overviewValuesForSet() {
+		return new Map(fingerprints.map(({ full }) => [full.fingerprint_id, overviewMetricsForFingerprint(full)]));
+	}
+
+	function overviewPercentilesForSet(overviewValues) {
+		return new Map(
+			overviewMetrics.map((spec) => [
+				spec.metric,
+				percentilesForMetric(
+					fingerprints.map(({ full }) => full),
+					spec,
+					overviewValues,
+				),
+			]),
+		);
+	}
+
+	function percentilesForMetric(allFingerprints, spec, overviewValues) {
+		const entries = allFingerprints
+			.map((fingerprint) => {
+				const value = overviewValues.get(fingerprint.fingerprint_id)?.get(spec.metric);
+				return { id: fingerprint.fingerprint_id, score: value?.score };
+			})
+			.filter((entry) => Number.isFinite(entry.score))
+			.sort((a, b) => a.score - b.score);
+		const result = new Map();
+		if (entries.length === 1) {
+			result.set(entries[0].id, 100);
+			return result;
+		}
+		for (let index = 0; index < entries.length; ) {
+			let end = index + 1;
+			while (end < entries.length && entries[end].score === entries[index].score) end += 1;
+			const averageRank = (index + end - 1) / 2;
+			const percentile = entries.length > 1 ? (averageRank / (entries.length - 1)) * 100 : 100;
+			for (let tiedIndex = index; tiedIndex < end; tiedIndex += 1) {
+				result.set(entries[tiedIndex].id, percentile);
+			}
+			index = end;
+		}
+		return result;
+	}
+
+	function renderOverview(fingerprint) {
+		const card = root.querySelector('[data-overview-card]');
+		const overviewValues = overviewValuesForSet();
+		const overviewPercentiles = overviewPercentilesForSet(overviewValues);
+		const values = overviewValues.get(fingerprint.fingerprint_id);
+		const header = document.createElement('header');
+		const titleWrap = document.createElement('div');
+		const title = document.createElement('h2');
+		title.textContent = 'Overview';
+		const note = document.createElement('div');
+		note.className = 'overview-note';
+		note.textContent = 'Time-averaged per parameter, weighted by parameter count.';
+		titleWrap.append(title, note);
+		header.append(titleWrap, makeOverviewParameterSelector());
+
+		const grid = document.createElement('div');
+		grid.className = 'overview-grid';
+		for (const spec of overviewMetrics) {
+			const value = values?.get(spec.metric);
+			const percentile = overviewPercentiles.get(spec.metric)?.get(fingerprint.fingerprint_id);
+			const article = document.createElement('article');
+			article.className = 'overview-metric';
+			article.title = `${spec.metric}: higher means ${spec.higherMeans}`;
+			const top = document.createElement('div');
+			top.className = 'overview-metric-top';
+			const label = document.createElement('div');
+			label.className = 'overview-label';
+			label.textContent = spec.label;
+			const description = document.createElement('div');
+			description.className = 'overview-description';
+			description.textContent = spec.description;
+			const direction = document.createElement('div');
+			direction.className = 'overview-direction';
+			direction.textContent = `Low = ${spec.lowMeans} / higher = ${spec.higherMeans}`;
+			top.append(label, description, direction);
+			const raw = document.createElement('div');
+			raw.className = 'overview-value';
+			raw.textContent = formatOverviewValue(value?.raw);
+			const rank = document.createElement('div');
+			rank.className = 'overview-percentile';
+			const swatch = document.createElement('span');
+			swatch.className = 'overview-swatch';
+			if (Number.isFinite(percentile)) {
+				swatch.style.setProperty('--percentile-color', percentileColor(percentile));
+				swatch.style.setProperty('--percentile-width', `${Math.max(0, Math.min(100, percentile))}%`);
+			}
+			const text = document.createElement('span');
+			text.className = 'overview-rank';
+			text.textContent = Number.isFinite(percentile) ? `p${Math.round(percentile)}` : 'n/a';
+			rank.append(swatch, text);
+			article.append(top, raw, rank);
+			grid.append(article);
+		}
+		card.replaceChildren(header, grid);
+	}
+
+	function percentileColor(percentile) {
+		const hue = 8 + (Math.max(0, Math.min(100, percentile)) / 100) * 132;
+		return `hsl(${hue} 58% 42%)`;
+	}
+
+	function makeOverviewParameterSelector() {
+		const field = document.createElement('div');
+		field.className = 'field';
+		const label = document.createElement('label');
+		label.className = 'sr-only';
+		label.textContent = 'Overview parameter set';
+		const select = document.createElement('select');
+		select.dataset.overviewParameterSetSelect = '';
+		for (const [value, text] of parameterSetOptions) {
+			const option = document.createElement('option');
+			option.value = value;
+			option.textContent = text;
+			select.append(option);
+		}
+		select.value = overviewParameterSet;
+		select.addEventListener('change', () => {
+			overviewParameterSet = select.value;
+			const fingerprint = selectedFingerprint();
+			if (fingerprint) renderOverview(fingerprint);
+		});
+		field.append(label, select);
+		return field;
+	}
+
+	function ordinal(value) {
+		const suffix = value % 100 >= 11 && value % 100 <= 13 ? 'th' : { 1: 'st', 2: 'nd', 3: 'rd' }[value % 10] || 'th';
+		return `${value}${suffix}`;
+	}
+
+	function makeParameterSelector(fingerprint) {
+		const bar = document.createElement('div');
+		bar.className = 'selector-bar';
+		const controls = document.createElement('div');
+		controls.className = 'selector-controls';
+		const field = document.createElement('div');
+		field.className = 'field';
+		const label = document.createElement('label');
+		label.className = 'sr-only';
+		label.textContent = 'Parameter set';
+		const select = document.createElement('select');
+		select.dataset.parameterSetSelect = '';
+		for (const [value, text] of chartParameterSetOptions) {
+			const option = document.createElement('option');
+			option.value = value;
+			option.textContent = text;
+			select.append(option);
+		}
+		select.value = selectedParameterSet;
+		select.addEventListener('change', () => {
+			selectedParameterSet = select.value;
+			if (selectedParameterSet === 'custom') openCustomModal();
+			render();
+		});
+		field.append(label, select);
+		const edit = document.createElement('button');
+		edit.type = 'button';
+		edit.textContent = 'Edit custom';
+		edit.addEventListener('click', openCustomModal);
+		const summary = document.createElement('div');
+		summary.className = 'set-summary';
+		const params = selectedParameters(fingerprint);
+		summary.textContent = `Averaging ${params.length} parameter${params.length === 1 ? '' : 's'}.`;
+		controls.append(field, edit, summary);
+		bar.append(controls);
+		return bar;
+	}
+
 	function renderCharts(fingerprint) {
 		for (const chart of chartInstances.values()) chart.dispose();
 		chartInstances.clear();
-		const chartSpecs = metrics.map((metric) => {
-			const article = document.createElement('article');
-			article.className = 'chart-card';
-			const header = document.createElement('header');
-			const titleWrap = document.createElement('div');
+		const sections = [];
+		for (const group of metricGroups) {
+			const isInitiallyOpen = openMetricGroups.has(group.title);
+			const section = document.createElement('section');
+			section.className = `metric-section${isInitiallyOpen ? '' : ' is-collapsed'}`;
+			const metricCount = Object.keys(group.metrics).length;
+			const summary = document.createElement('div');
+			summary.className = 'metric-summary';
+			const summaryText = document.createElement('div');
+			summaryText.className = 'metric-summary-text';
+			const collapsedTitle = document.createElement('h3');
+			collapsedTitle.className = 'selector-title';
+			collapsedTitle.textContent = group.title;
+			const count = document.createElement('div');
+			count.className = 'metric-count';
+			count.textContent = `${metricCount} metric${metricCount === 1 ? '' : 's'}`;
+			summaryText.append(collapsedTitle, count);
+			const toggle = document.createElement('button');
+			toggle.type = 'button';
+			toggle.textContent = isInitiallyOpen ? 'Hide' : 'Show';
+			toggle.setAttribute('aria-expanded', String(isInitiallyOpen));
+			summary.append(summaryText, toggle);
+			const selectorBar = makeParameterSelector(fingerprint);
+			const stack = document.createElement('div');
+			stack.className = 'chart-stack';
+			const groupChartSpecs = [];
+			for (const metric of Object.keys(group.metrics)) {
+				const article = document.createElement('article');
+				article.className = 'chart-card';
+				const header = document.createElement('header');
+				const titleWrap = document.createElement('div');
 				const title = document.createElement('h3');
 				title.textContent = metricInfo[metric].title;
 				const subtitle = document.createElement('div');
 				subtitle.className = 'chart-subtitle';
-				subtitle.textContent = metricInfo[metric].subtitle;
-			titleWrap.append(title, subtitle);
-			header.append(titleWrap);
-			if (ratioMetrics.has(metric)) header.append(makeScaleToggle(metric));
-			const host = document.createElement('div');
-			host.className = 'main-chart';
-			const chartRoot = document.createElement('div');
-			host.append(chartRoot);
-			const note = document.createElement('div');
-			note.className = 'chart-note';
-			article.append(header, host, note);
-			return { article, chartRoot, note, metric };
-		});
-		root.querySelector('[data-chart-stack]').replaceChildren(...chartSpecs.map((spec) => spec.article));
-		for (const spec of chartSpecs) {
-			renderLineChart(spec.chartRoot, spec.note, averagedSeries(fingerprint, spec.metric), spec.metric);
+				subtitle.textContent = `${metricInfo[metric].subtitle} · ${metric}`;
+				titleWrap.append(title, subtitle);
+				header.append(titleWrap);
+				if (ratioMetrics.has(metric)) header.append(makeScaleToggle(metric));
+				const host = document.createElement('div');
+				host.className = 'main-chart';
+				const chartRoot = document.createElement('div');
+				host.append(chartRoot);
+				const note = document.createElement('div');
+				note.className = 'chart-note';
+				article.append(header, host, note);
+				stack.append(article);
+				groupChartSpecs.push({ chartRoot, note, metric });
+			}
+			let rendered = false;
+			const renderGroupCharts = () => {
+				if (rendered) return;
+				for (const spec of groupChartSpecs) {
+					renderLineChart(spec.chartRoot, spec.note, averagedSeries(fingerprint, spec.metric), spec.metric);
+				}
+				rendered = true;
+			};
+			toggle.addEventListener('click', () => {
+				const collapsed = section.classList.toggle('is-collapsed');
+				const isOpen = !collapsed;
+				toggle.textContent = isOpen ? 'Hide' : 'Show';
+				toggle.setAttribute('aria-expanded', String(isOpen));
+				if (isOpen) openMetricGroups.add(group.title);
+				else openMetricGroups.delete(group.title);
+				if (isOpen) renderGroupCharts();
+			});
+			section.append(summary, selectorBar, stack);
+			sections.push(section);
+			if (isInitiallyOpen) queueMicrotask(renderGroupCharts);
 		}
+		root.querySelector('[data-metric-sections]').replaceChildren(...sections);
 	}
 
 	function makeScaleToggle(metric) {
@@ -726,7 +1498,7 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	}
 
 	function openCustomModal() {
-		setSelect.value = 'custom';
+		selectedParameterSet = 'custom';
 		renderCustomList();
 		customModal.setAttribute('aria-hidden', 'false');
 	}
@@ -779,11 +1551,13 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		customNames.clear();
 		render();
 	});
-	setSelect?.addEventListener('change', () => {
-		if (setSelect.value === 'custom') openCustomModal();
-		render();
+	optimizerTrigger?.addEventListener('click', toggleOptimizerMenu);
+	document.addEventListener('click', (event) => {
+		if (!root?.querySelector('.optimizer-picker')?.contains(event.target)) closeOptimizerMenu();
 	});
-	customEdit?.addEventListener('click', openCustomModal);
+	document.addEventListener('keydown', (event) => {
+		if (event.key === 'Escape') closeOptimizerMenu();
+	});
 	customClose?.addEventListener('click', closeCustomModal);
 	customModal?.addEventListener('click', (event) => {
 		if (event.target === customModal) closeCustomModal();

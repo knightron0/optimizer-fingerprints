@@ -1,22 +1,716 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import { loadFingerprints } from '../../lib/data';
+
+const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 ---
 
 <Layout title="Compare">
-	<section class="pane-shell" aria-label="Compare workspace">
-		<div class="pane-frame">
-			<div class="pane-inner">
-				<div class="pane-grid">
-					<div class="pane"></div>
-					<div class="pane"></div>
-				</div>
-			</div>
-		</div>
+	<section class="compare-shell" data-compare-root>
+		{
+			fingerprints.length === 0 ? (
+				<div class="empty">No current-schema fingerprints are available.</div>
+			) : (
+				<>
+					<header class="compare-topbar">
+						<div>
+							<h1>Compare</h1>
+							<p>Time-averaged per parameter, weighted by parameter count.</p>
+						</div>
+						<div class="field">
+							<label for="compare-parameter-set">Parameter set</label>
+							<select id="compare-parameter-set" data-parameter-set></select>
+						</div>
+					</header>
 
-		<div class="pane-frame">
-			<div class="pane-inner">
-				<div class="graph-panel"></div>
-			</div>
-		</div>
+					<section class="optimizer-strip" aria-label="Optimizer selection">
+						<div class="optimizer-slots" data-optimizer-slots></div>
+						<div class="optimizer-picker">
+							<button type="button" class="optimizer-add" data-add-optimizer aria-label="Add optimizer">+</button>
+							<div class="optimizer-menu" data-optimizer-menu hidden></div>
+						</div>
+					</section>
+
+					<div class="compare-grid" data-chart-grid></div>
+				</>
+			)
+		}
 	</section>
 </Layout>
+
+<style is:global>
+	.compare-shell {
+		box-sizing: border-box;
+		padding: 10px 28px 0;
+	}
+
+	.compare-shell *,
+	.compare-shell *::before,
+	.compare-shell *::after {
+		box-sizing: border-box;
+	}
+
+	.compare-topbar {
+		display: flex;
+		gap: 20px;
+		align-items: flex-end;
+		justify-content: space-between;
+		margin-bottom: 12px;
+	}
+
+	.compare-topbar h1 {
+		margin: 0;
+		font-family: var(--sans);
+		font-size: 20px;
+		font-weight: 600;
+		letter-spacing: 0;
+		line-height: 1.2;
+	}
+
+	.compare-topbar p {
+		margin: 4px 0 0;
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 12px;
+	}
+
+	.compare-topbar .field {
+		flex: 0 1 260px;
+		min-width: 220px;
+	}
+
+	.optimizer-strip {
+		position: relative;
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		border: 1px solid var(--line);
+		background: var(--paper);
+		padding: 8px;
+		font-family: var(--sans);
+	}
+
+	.optimizer-slots {
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	.optimizer-slot {
+		display: flex;
+		gap: 6px;
+		align-items: center;
+		max-width: 190px;
+		min-width: 0;
+		border: 0;
+		background: var(--optimizer-color, var(--accent));
+		padding: 5px 6px;
+		color: white;
+	}
+
+	.optimizer-index {
+		flex: 0 0 auto;
+		width: 18px;
+		color: rgb(255 255 255 / 0.72);
+		font-family: var(--mono);
+		font-size: 11px;
+		text-align: right;
+	}
+
+	.optimizer-color {
+		flex: 0 0 auto;
+		width: 9px;
+		height: 18px;
+		border: 1px solid rgb(31 27 22 / 0.18);
+	}
+
+	.optimizer-label {
+		min-width: 0;
+		overflow: hidden;
+		color: white;
+		font-family: var(--mono);
+		font-size: 11px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.optimizer-picker {
+		position: relative;
+		flex: 0 0 auto;
+	}
+
+	.optimizer-remove,
+	.optimizer-add {
+		flex: 0 0 auto;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--sans);
+		cursor: pointer;
+	}
+
+	.optimizer-remove {
+		width: 20px;
+		height: 20px;
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: rgb(255 255 255 / 0.82);
+		font-size: 12px;
+		line-height: 18px;
+	}
+
+	.optimizer-add {
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		font-size: 18px;
+		line-height: 28px;
+	}
+
+	.optimizer-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		z-index: 20;
+		width: 220px;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		box-shadow: 0 10px 24px rgb(31 27 22 / 0.12);
+	}
+
+	.optimizer-menu button {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		width: 100%;
+		border: 0;
+		border-bottom: 1px solid var(--line);
+		background: var(--paper);
+		color: var(--ink);
+		padding: 8px 9px;
+		font-family: var(--mono);
+		font-size: 11px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.optimizer-menu button:last-child {
+		border-bottom: 0;
+	}
+
+	.optimizer-menu button:hover {
+		background: var(--row);
+	}
+
+	.optimizer-menu .optimizer-color {
+		height: 14px;
+	}
+
+	.compare-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		margin-top: 16px;
+		border-top: 1px solid var(--line);
+		border-left: 1px solid var(--line);
+		background: var(--paper);
+	}
+
+	.metric-chart {
+		min-width: 0;
+		border-right: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		background: var(--paper);
+		font-family: var(--sans);
+	}
+
+	.metric-chart > header {
+		min-height: 84px;
+		border-bottom: 1px solid var(--line);
+		padding: 10px 12px 8px;
+	}
+
+	.metric-chart h2 {
+		margin: 0;
+		color: var(--ink);
+		font-size: 13px;
+		font-weight: 600;
+		letter-spacing: 0;
+		line-height: 1.25;
+	}
+
+	.metric-description,
+	.metric-direction {
+		margin-top: 4px;
+		color: var(--muted);
+		font-size: 11px;
+		line-height: 1.3;
+	}
+
+	.metric-direction {
+		color: color-mix(in srgb, var(--muted) 82%, var(--ink) 18%);
+	}
+
+	.chart-host {
+		height: 240px;
+		min-height: 240px;
+		padding-bottom: 8px;
+		background: color-mix(in srgb, var(--paper) 94%, white 6%);
+	}
+
+	.chart-host > div {
+		width: 100%;
+		height: 100%;
+	}
+
+	.empty-chart {
+		display: grid;
+		place-items: center;
+		height: 240px;
+		color: var(--muted);
+		font-size: 12px;
+	}
+
+	@media (max-width: 960px) {
+		.compare-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+
+	@media (max-width: 680px) {
+		.compare-shell {
+			padding: 10px 18px 0;
+		}
+
+		.compare-topbar,
+		.optimizer-strip {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.compare-topbar .field {
+			width: 100%;
+			min-width: 0;
+		}
+
+		.compare-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.optimizer-picker,
+		.optimizer-add {
+			align-self: flex-end;
+		}
+	}
+</style>
+
+<script id="compare-data" type="application/json" set:html={JSON.stringify(fingerprints)}></script>
+
+<script>
+	import { BarChart } from 'echarts/charts';
+	import { GridComponent, TooltipComponent } from 'echarts/components';
+	import * as echarts from 'echarts/core';
+	import { SVGRenderer } from 'echarts/renderers';
+
+	echarts.use([BarChart, GridComponent, TooltipComponent, SVGRenderer]);
+
+	const fingerprints = JSON.parse(document.getElementById('compare-data').textContent).map((entry) => entry.full);
+	const root = document.querySelector('[data-compare-root]');
+	const parameterSetSelect = root?.querySelector('[data-parameter-set]');
+	const optimizerSlotsRoot = root?.querySelector('[data-optimizer-slots]');
+	const addOptimizer = root?.querySelector('[data-add-optimizer]');
+	const optimizerMenu = root?.querySelector('[data-optimizer-menu]');
+	const chartGrid = root?.querySelector('[data-chart-grid]');
+	const chartInstances = new Map();
+	const colors = ['#7b2d26', '#28666e', '#8a6f23', '#4b6b3c', '#5d4a8a', '#9b4f2f', '#2f5f9b', '#6c5f4b', '#3f7d68', '#8b3f6f', '#535353'];
+	const parameterSetOptions = [
+		['all_parameters', 'all parameters'],
+		['conv_weights', 'conv weights'],
+		['conv_biases', 'conv biases'],
+		['batchnorm_weights', 'batchnorm weights'],
+		['batchnorm_biases', 'batchnorm biases'],
+		['all_weights', 'all weights'],
+		['all_biases', 'all biases'],
+		['layer1', 'layer1'],
+		['layer2', 'layer2'],
+		['layer3', 'layer3'],
+		['layer4', 'layer4'],
+		['downsample', 'downsample'],
+		['fc', 'fc'],
+	];
+	const overviewMetrics = [
+		{
+			label: 'Gradient Alignment',
+			metric: 'update_neg_grad_cos',
+			description: 'How directly updates follow the negative gradient.',
+			lowMeans: 'wandering',
+			higherMeans: 'more aligned',
+		},
+		{
+			label: 'Update Persistence',
+			metric: 'update_prev_update_cos',
+			description: 'How much each update keeps the previous direction.',
+			lowMeans: 'changes direction',
+			higherMeans: 'persistent updates',
+		},
+		{
+			label: 'Gradient Amplification',
+			metric: 'update_grad_norm_ratio',
+			scale: 'log',
+			description: 'Update norm relative to gradient norm.',
+			lowMeans: 'damped',
+			higherMeans: 'amplified steps',
+		},
+		{
+			label: 'Relative Step Size',
+			metric: 'update_theta_norm_ratio',
+			scale: 'log',
+			description: 'Update norm relative to weight norm.',
+			lowMeans: 'small step',
+			higherMeans: 'larger steps',
+		},
+		{
+			label: 'Entrywise Coupling',
+			metric: 'update_abs_grad_abs_corr',
+			description: 'Whether large gradients get large updates.',
+			lowMeans: 'decoupled',
+			higherMeans: 'coupled',
+		},
+		{
+			label: 'Update Concentration',
+			metric: 'update_linf_l2_ratio',
+			description: 'How much update mass sits in one coordinate.',
+			lowMeans: 'spread out',
+			higherMeans: 'concentrated',
+		},
+		{
+			label: 'Update Diffuseness',
+			metric: 'update_l1_l2_ratio',
+			description: 'How broadly update mass spreads across coordinates.',
+			lowMeans: 'spiky',
+			higherMeans: 'diffuse',
+		},
+		{
+			label: 'Matrix Spread',
+			metric: 'update_stable_rank',
+			description: 'How many singular directions carry update mass.',
+			lowMeans: 'low-rank',
+			higherMeans: 'broad spread',
+		},
+		{
+			label: 'Orthogonality',
+			metric: 'update_orthogonality_error',
+			description: 'How close matrix updates are to balanced directions.',
+			lowMeans: 'balanced',
+			higherMeans: 'unbalanced',
+		},
+	];
+	const optimizerNames = [...new Set(fingerprints.map((fingerprint) => fingerprint.optimizer.name))].sort();
+	const runsByOptimizer = new Map(
+		optimizerNames.map((name) => [name, fingerprints.filter((fingerprint) => fingerprint.optimizer.name === name)]),
+	);
+	const selectedOptimizerSlots = optimizerNames.slice(0, Math.min(2, optimizerNames.length));
+
+	function renderControls() {
+		parameterSetSelect.replaceChildren(
+			...parameterSetOptions.map(([value, text]) => {
+				const option = document.createElement('option');
+				option.value = value;
+				option.textContent = text;
+				return option;
+			}),
+		);
+		parameterSetSelect.value = 'all_parameters';
+		renderOptimizerSlots();
+	}
+
+	function selectedNames() {
+		return selectedOptimizerSlots.filter(Boolean);
+	}
+
+	function render() {
+		renderOptimizerSlots();
+		renderCharts();
+	}
+
+	function renderOptimizerSlots() {
+		optimizerSlotsRoot.replaceChildren(
+			...selectedOptimizerSlots.map((name, index) => {
+				const slot = document.createElement('div');
+				slot.className = 'optimizer-slot';
+				slot.style.setProperty('--optimizer-color', colorForOptimizer(name));
+				const number = document.createElement('span');
+				number.className = 'optimizer-index';
+				number.textContent = String(index + 1);
+				const label = document.createElement('span');
+				label.className = 'optimizer-label';
+				label.textContent = name;
+				const remove = document.createElement('button');
+				remove.type = 'button';
+				remove.className = 'optimizer-remove';
+				remove.textContent = 'x';
+				remove.setAttribute('aria-label', `Remove ${name}`);
+				remove.disabled = selectedOptimizerSlots.length <= 1;
+				remove.addEventListener('click', () => {
+					selectedOptimizerSlots.splice(index, 1);
+					render();
+				});
+				slot.append(number, label, remove);
+				return slot;
+			}),
+		);
+		renderOptimizerMenu();
+	}
+
+	function colorForOptimizer(name) {
+		return colors[optimizerNames.indexOf(name) % colors.length];
+	}
+
+	function renderOptimizerMenu() {
+		const chosen = new Set(selectedNames());
+		const available = optimizerNames.filter((name) => !chosen.has(name));
+		addOptimizer.disabled = available.length === 0;
+		optimizerMenu.replaceChildren(
+			...available.map((name) => {
+				const option = document.createElement('button');
+				option.type = 'button';
+				const swatch = document.createElement('span');
+				swatch.className = 'optimizer-color';
+				swatch.style.background = colorForOptimizer(name);
+				const label = document.createElement('span');
+				label.textContent = name;
+				option.append(swatch, label);
+				option.addEventListener('click', () => {
+					selectedOptimizerSlots.push(name);
+					closeOptimizerMenu();
+					render();
+				});
+				return option;
+			}),
+		);
+		if (available.length === 0) closeOptimizerMenu();
+	}
+
+	function toggleOptimizerMenu() {
+		if (addOptimizer.disabled) return;
+		optimizerMenu.hidden = !optimizerMenu.hidden;
+	}
+
+	function closeOptimizerMenu() {
+		optimizerMenu.hidden = true;
+	}
+
+	function parameterSetParameters(fingerprint, set) {
+		const params = fingerprint.snapshots[0].parameters;
+		if (set === 'all_parameters') return params;
+		const predicates = {
+			conv_weights: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.weight'),
+			conv_biases: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.bias'),
+			batchnorm_weights: (parameter) => parameter.name.includes('bn') && parameter.name.endsWith('.weight'),
+			batchnorm_biases: (parameter) => parameter.name.includes('bn') && parameter.name.endsWith('.bias'),
+			all_weights: (parameter) => parameter.name.endsWith('.weight'),
+			all_biases: (parameter) => parameter.name.endsWith('.bias'),
+			layer1: (parameter) => parameter.name.startsWith('layer1'),
+			layer2: (parameter) => parameter.name.startsWith('layer2'),
+			layer3: (parameter) => parameter.name.startsWith('layer3'),
+			layer4: (parameter) => parameter.name.startsWith('layer4'),
+			downsample: (parameter) => parameter.name.includes('downsample'),
+			fc: (parameter) => parameter.name.startsWith('fc'),
+		};
+		return params.filter(predicates[set] ?? (() => false));
+	}
+
+	function weightedSnapshotMean(fingerprint, metric, parameterSet) {
+		const selected = parameterSetParameters(fingerprint, parameterSet);
+		const selectedNames = new Set(selected.map((parameter) => parameter.name));
+		const parameterWeights = new Map(selected.map((parameter) => [parameter.name, parameter.numel]));
+		const parameterValues = new Map();
+		for (const snapshot of fingerprint.snapshots) {
+			for (const parameter of snapshot.parameters) {
+				if (!selectedNames.has(parameter.name)) continue;
+				const value = parameter.metrics[metric];
+				if (!Number.isFinite(value)) continue;
+				const values = parameterValues.get(parameter.name) ?? [];
+				values.push(value);
+				parameterValues.set(parameter.name, values);
+			}
+		}
+		let weightedSum = 0;
+		let weightSum = 0;
+		for (const [name, values] of parameterValues) {
+			const weight = parameterWeights.get(name);
+			if (!Number.isFinite(weight) || weight <= 0 || values.length === 0) continue;
+			const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+			weightedSum += mean * weight;
+			weightSum += weight;
+		}
+		return weightSum > 0 ? weightedSum / weightSum : null;
+	}
+
+	function optimizerValues(spec, names = selectedNames()) {
+		const parameterSet = parameterSetSelect.value;
+		return names.map((name, index) => {
+			const rawValues = (runsByOptimizer.get(name) ?? [])
+				.map((fingerprint) => weightedSnapshotMean(fingerprint, spec.metric, parameterSet))
+				.filter((value) => Number.isFinite(value) && (spec.scale !== 'log' || value > 0));
+			const raw = rawValues.length ? rawValues.reduce((sum, value) => sum + value, 0) / rawValues.length : null;
+			return {
+				name,
+				raw,
+				value: spec.scale === 'log' && Number.isFinite(raw) ? Math.log10(raw) : raw,
+				count: rawValues.length,
+				color: colorForOptimizer(name),
+				index,
+			};
+		});
+	}
+
+	function metricDomain(spec) {
+		if (spec.metric === 'update_neg_grad_cos' || spec.metric === 'update_prev_update_cos') {
+			return [-1.05, 1.05];
+		}
+		const values = optimizerValues(spec, optimizerNames)
+			.map((entry) => entry.value)
+			.filter((value) => Number.isFinite(value));
+		if (!values.length) return [0, 1];
+		const min = Math.min(...values);
+		const max = Math.max(...values);
+		if (spec.scale === 'log') {
+			return [Math.floor(min), Math.max(Math.ceil(max + 0.12), Math.floor(min) + 1)];
+		}
+		if (min < 0) {
+			const pad = Math.max((max - min) * 0.12, 1e-12);
+			return [min - pad, max + pad];
+		}
+		return [0, Math.max(max * 1.18, max + 1e-12)];
+	}
+
+	function renderCharts() {
+		for (const chart of chartInstances.values()) chart.dispose();
+		chartInstances.clear();
+		chartGrid.replaceChildren(
+			...overviewMetrics.map((spec) => {
+				const article = document.createElement('article');
+				article.className = 'metric-chart';
+				const header = document.createElement('header');
+				const title = document.createElement('h2');
+				title.textContent = spec.label;
+				const description = document.createElement('div');
+				description.className = 'metric-description';
+				description.textContent = spec.description;
+				const direction = document.createElement('div');
+				direction.className = 'metric-direction';
+				direction.textContent = `Low = ${spec.lowMeans} / higher = ${spec.higherMeans}`;
+				header.append(title, description, direction);
+				const host = document.createElement('div');
+				host.className = 'chart-host';
+				const chartRoot = document.createElement('div');
+				host.append(chartRoot);
+				article.append(header, host);
+				queueMicrotask(() => renderBarChart(chartRoot, spec));
+				return article;
+			}),
+		);
+	}
+
+	function renderBarChart(host, spec) {
+		const values = optimizerValues(spec).filter((entry) => Number.isFinite(entry.value));
+		if (!values.length) {
+			const empty = document.createElement('div');
+			empty.className = 'empty-chart';
+			empty.textContent = selectedNames().length ? 'No finite values' : 'No optimizers selected';
+			host.replaceChildren(empty);
+			return;
+		}
+		const chart = echarts.init(host, null, { renderer: 'svg' });
+		chartInstances.set(host, chart);
+		const ratio = spec.scale === 'log';
+		const [yMin, yMax] = metricDomain(spec);
+		const barStep = 0.34;
+		const xHalfRange = Math.max(0.8, ((values.length - 1) * barStep) / 2 + 0.42);
+		const barWidth = values.length <= 2 ? 40 : values.length <= 4 ? 34 : values.length <= 7 ? 26 : 20;
+		chart.setOption({
+			animation: false,
+			color: values.map((entry) => entry.color),
+			grid: { left: 48, right: 12, top: 18, bottom: 14 },
+			tooltip: { show: false },
+			xAxis: {
+				type: 'value',
+				min: -xHalfRange,
+				max: xHalfRange,
+				position: 'bottom',
+				axisLine: { show: true, onZero: false, lineStyle: { color: 'rgba(111, 103, 92, 0.55)', width: 1 } },
+				axisTick: { show: false },
+				axisLabel: { show: false },
+				splitLine: { show: false },
+			},
+			yAxis: {
+				type: 'value',
+				min: yMin,
+				max: yMax,
+				splitNumber: 2,
+				axisLine: { show: true, lineStyle: { color: 'rgba(111, 103, 92, 0.55)', width: 1 } },
+				axisTick: { show: false },
+				axisLabel: {
+					color: '#6f675c',
+					fontFamily: 'IBM Plex Mono, monospace',
+					fontSize: 10,
+					margin: 6,
+					formatter: (value) => (ratio ? formatSigFig(10 ** value) : formatSigFig(value)),
+				},
+				splitLine: {
+					show: true,
+					lineStyle: { color: 'rgba(191, 180, 164, 0.18)', width: 1 },
+				},
+			},
+			series: [
+				{
+					type: 'bar',
+					silent: true,
+					data: values.map((entry, index) => ({
+						value: [(index - (values.length - 1) / 2) * barStep, entry.value, entry.raw, entry.count, entry.name],
+						itemStyle: { color: entry.color },
+					})),
+					barWidth,
+				},
+			],
+		});
+	}
+
+	function format(value) {
+		if (!Number.isFinite(value)) return 'n/a';
+		const abs = Math.abs(value);
+		if (abs !== 0 && (abs < 0.01 || abs >= 10000)) return value.toExponential(3);
+		return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
+	}
+
+	function formatSigFig(value) {
+		if (!Number.isFinite(value)) return 'n/a';
+		if (value === 0) return '0';
+		const abs = Math.abs(value);
+		if (abs < 0.01 || abs >= 10000) return value.toExponential(1);
+		return Number(value.toPrecision(2)).toString();
+	}
+
+	parameterSetSelect?.addEventListener('change', render);
+	addOptimizer?.addEventListener('click', (event) => {
+		event.stopPropagation();
+		toggleOptimizerMenu();
+	});
+	document.addEventListener('click', (event) => {
+		if (!root?.contains(event.target)) {
+			closeOptimizerMenu();
+			return;
+		}
+		if (event.target === addOptimizer || optimizerMenu?.contains(event.target)) return;
+		closeOptimizerMenu();
+	});
+	window.addEventListener('resize', () => {
+		for (const chart of chartInstances.values()) chart.resize();
+	});
+
+	renderControls();
+	render();
+</script>
