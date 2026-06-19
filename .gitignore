@@ -24,7 +24,6 @@ web/benchmark/projects/
 web/benchmark/results/
 web/test-results/
 web/*.log
-web/package-lock.json
 web/.turbo/
 web/.eslintcache
 web/.pnpm-store
