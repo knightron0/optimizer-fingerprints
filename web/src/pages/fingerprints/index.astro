@@ -1,3 +1,5 @@
 ---
-return Astro.redirect('/fingerprint');
+const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+return Astro.redirect(`${basePath}/fingerprint`);
 ---
