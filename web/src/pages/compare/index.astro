@@ -355,6 +355,13 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 			higherMeans: 'persistent updates',
 		},
 		{
+			label: 'EMA Gradient Alignment',
+			metric: 'update_neg_grad_ema_cos',
+			description: 'How directly updates follow the smoothed gradient.',
+			lowMeans: 'less history aligned',
+			higherMeans: 'more history aligned',
+		},
+		{
 			label: 'Gradient Norm',
 			metric: 'grad_norm',
 			scale: 'log',
@@ -369,6 +376,14 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 			description: 'Per-parameter update magnitude.',
 			lowMeans: 'smaller updates',
 			higherMeans: 'larger updates',
+		},
+		{
+			label: 'Parameter Norm',
+			metric: 'theta_norm',
+			scale: 'log',
+			description: 'Per-parameter weight magnitude.',
+			lowMeans: 'smaller parameters',
+			higherMeans: 'larger parameters',
 		},
 		{
 			label: 'Relative Step Size',
@@ -574,7 +589,7 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 	}
 
 	function metricDomain(spec) {
-		if (spec.metric === 'update_neg_grad_cos' || spec.metric === 'update_prev_update_cos') {
+		if (['update_neg_grad_cos', 'update_prev_update_cos', 'update_neg_grad_ema_cos'].includes(spec.metric)) {
 			return [-1.05, 1.05];
 		}
 		const values = optimizerValues(spec, optimizerNames)

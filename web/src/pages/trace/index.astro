@@ -28,29 +28,6 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 					</header>
 
 					<div class="overview-card" data-overview-card></div>
-					<div class="metric-panes" data-metric-sections></div>
-
-					<div class="custom-modal" data-custom-modal aria-hidden="true">
-						<div class="custom-dialog">
-							<header>
-								<h2>Custom Parameters</h2>
-								<button type="button" data-custom-close aria-label="Close custom parameter picker">x</button>
-							</header>
-							<div class="custom-tools">
-								<div class="field">
-									<label for="custom-filter">Filter</label>
-										<input id="custom-filter" type="search" placeholder="attn, mlp, weight..." data-custom-filter />
-								</div>
-								<div class="custom-actions">
-									<button type="button" data-custom-select-visible>Select visible</button>
-									<button type="button" data-custom-clear>Clear</button>
-									<button type="button" data-custom-apply>Apply</button>
-								</div>
-							</div>
-							<div class="custom-count" data-custom-count></div>
-							<div class="custom-list" data-custom-list></div>
-						</div>
-					</div>
 				</>
 			)
 		}
@@ -734,6 +711,14 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 			higherMeans: 'persistent updates',
 		},
 		{
+			label: 'EMA Gradient Alignment',
+			metric: 'update_neg_grad_ema_cos',
+			family: 'direction',
+			description: 'Updates follow the smoothed gradient.',
+			lowMeans: 'less history aligned',
+			higherMeans: 'more history aligned',
+		},
+		{
 			label: 'Gradient Norm',
 			metric: 'grad_norm',
 			family: 'scale',
@@ -750,6 +735,15 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 			description: 'Per-parameter update magnitude.',
 			lowMeans: 'smaller updates',
 			higherMeans: 'larger updates',
+		},
+		{
+			label: 'Parameter Norm',
+			metric: 'theta_norm',
+			family: 'scale',
+			scale: 'log',
+			description: 'Per-parameter weight magnitude.',
+			lowMeans: 'smaller parameters',
+			higherMeans: 'larger parameters',
 		},
 		{
 			label: 'Relative Step Size',
@@ -890,7 +884,6 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 		ensureCustomSelection(fingerprint);
 		renderMeta(fingerprint);
 		renderOverview(fingerprint);
-		renderCharts(fingerprint);
 	}
 
 	function renderMeta(fingerprint) {
@@ -1332,7 +1325,7 @@ const runs = loadRuns().map((entry) => ({ full: entry.full }));
 	}
 
 	function renderLineChart(host, note, points, metric) {
-		const cosineMetric = metric === 'update_neg_grad_cos' || metric === 'update_prev_update_cos';
+		const cosineMetric = ['update_neg_grad_cos', 'update_prev_update_cos', 'update_neg_grad_ema_cos'].includes(metric);
 		const logScale = ratioMetrics.has(metric) && ratioScales[metric] === 'log';
 		const transformed = points
 			.map((point) => ({

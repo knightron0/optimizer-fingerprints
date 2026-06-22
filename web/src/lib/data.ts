@@ -59,7 +59,7 @@ export interface LoadedRun {
 
 const webRoot = process.cwd();
 const repoRoot = resolve(webRoot, '..');
-const traceRoot = resolve(repoRoot, 'nanogpt', 'traces');
+const traceRoot = resolve(repoRoot, 'traces');
 
 export function formatJsonValue(value: JsonValue | undefined): string {
 	if (value === undefined) {
@@ -102,7 +102,7 @@ export function loadRuns(): LoadedRun[] {
 			return [
 				{
 					run_id: trace.run_id,
-					path: `nanogpt/traces/${name}`,
+					path: `traces/${name}`,
 					schema: trace.schema,
 					run_name: trace.run_name,
 					snapshot_count: trace.snapshots.length,
