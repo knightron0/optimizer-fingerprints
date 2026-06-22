@@ -13,6 +13,10 @@ import uuid
 import time
 from pathlib import Path
 
+# Keep this example directly runnable via `torchrun nanogpt/examples/aurora.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from nanogpt.wrapper import OptimizerFingerprint
+
 import torch
 from torch import Tensor, nn
 from torch.optim import AdamW
@@ -381,6 +385,13 @@ for _ in range(num_trials):
             for group in opt.param_groups:
                 group["lr"] = group["initial_lr"] * eta
 
+    fingerprint = OptimizerFingerprint.attach(
+        model,
+        optimizers,
+        run_name="aurora",
+        snapshot_interval=25,
+    )
+
 
     ########################################
     #        Training and Validation       #
@@ -440,5 +451,9 @@ for _ in range(num_trials):
         approx_training_time = training_time + (time.perf_counter() - t0)
         print0(f"step:{step+1}/{train_steps} train_time:{approx_training_time:.3f}s"
                + f" step_avg:{1000*approx_training_time/(step + 1):.2f}ms", console=True, log=False)
+
+    fingerprint_path = fingerprint.finish()
+    if fingerprint_path is not None:
+        print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
 
 dist.destroy_process_group()
