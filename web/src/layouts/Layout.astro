@@ -3,7 +3,7 @@ interface Props {
 	title?: string;
 }
 
-const { title = 'Optimizer fingerprints' } = Astro.props;
+const { title = 'NanoGPT traces' } = Astro.props;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const withBase = (path: string) => `${basePath}${path}`;
 const currentPath = basePath && Astro.url.pathname.startsWith(basePath)
@@ -13,7 +13,7 @@ const pathname = currentPath.replace(/\/$/, '') || '/';
 
 const navItems = [
 	{ href: '/compare', label: 'Compare' },
-	{ href: '/fingerprint', label: 'Fingerprint' },
+	{ href: '/trace', label: 'Trace' },
 ];
 ---
 
@@ -31,7 +31,7 @@ const navItems = [
 		<header class="site-header">
 			<a class="wordmark" href={withBase('/compare')}>
 				<img src={withBase('/logo.svg')} alt="" width="24" height="24" />
-				<span>optimizer fingerprints</span>
+				<span>NanoGPT traces</span>
 			</a>
 			<nav aria-label="Primary navigation">
 				{navItems.map((item) => (

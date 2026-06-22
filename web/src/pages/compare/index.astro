@@ -1,15 +1,15 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { loadFingerprints } from '../../lib/data';
+import { loadRuns } from '../../lib/data';
 
-const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
+const runs = loadRuns().map((entry) => ({ full: entry.full }));
 ---
 
 <Layout title="Compare">
 	<section class="compare-shell" data-compare-root>
 		{
-			fingerprints.length === 0 ? (
-				<div class="empty">No current-schema fingerprints are available.</div>
+			runs.length === 0 ? (
+				<div class="empty">No NanoGPT traces are available.</div>
 			) : (
 				<>
 					<header class="compare-topbar">
@@ -23,10 +23,10 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 						</div>
 					</header>
 
-					<section class="optimizer-strip" aria-label="Optimizer selection">
+					<section class="optimizer-strip" aria-label="Run selection">
 						<div class="optimizer-slots" data-optimizer-slots></div>
 						<div class="optimizer-picker">
-							<button type="button" class="optimizer-add" data-add-optimizer aria-label="Add optimizer">+</button>
+							<button type="button" class="optimizer-add" data-add-optimizer aria-label="Add run">+</button>
 							<div class="optimizer-menu" data-optimizer-menu hidden></div>
 						</div>
 					</section>
@@ -306,7 +306,7 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	}
 </style>
 
-<script id="compare-data" type="application/json" set:html={JSON.stringify(fingerprints)}></script>
+<script id="compare-data" type="application/json" set:html={JSON.stringify(runs)}></script>
 
 <script>
 	import { BarChart } from 'echarts/charts';
@@ -316,7 +316,7 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 
 	echarts.use([BarChart, GridComponent, TooltipComponent, SVGRenderer]);
 
-	const fingerprints = JSON.parse(document.getElementById('compare-data').textContent).map((entry) => entry.full);
+	const runs = JSON.parse(document.getElementById('compare-data').textContent).map((entry) => entry.full);
 	const root = document.querySelector('[data-compare-root]');
 	const parameterSetSelect = root?.querySelector('[data-parameter-set]');
 	const optimizerSlotsRoot = root?.querySelector('[data-optimizer-slots]');
@@ -327,18 +327,17 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 	const colors = ['#7b2d26', '#28666e', '#8a6f23', '#4b6b3c', '#5d4a8a', '#9b4f2f', '#2f5f9b', '#6c5f4b', '#3f7d68', '#8b3f6f', '#535353'];
 	const parameterSetOptions = [
 		['all_parameters', 'all parameters'],
-		['conv_weights', 'conv weights'],
-		['conv_biases', 'conv biases'],
-		['batchnorm_weights', 'batchnorm weights'],
-		['batchnorm_biases', 'batchnorm biases'],
-		['all_weights', 'all weights'],
-		['all_biases', 'all biases'],
-		['layer1', 'layer1'],
-		['layer2', 'layer2'],
-		['layer3', 'layer3'],
-		['layer4', 'layer4'],
-		['downsample', 'downsample'],
-		['fc', 'fc'],
+		['matrix_parameters', 'matrix parameters'],
+		['vector_parameters', 'vector parameters'],
+		['embeddings', 'embeddings'],
+		['attention', 'attention'],
+		['attention_qkv', 'attention q/k/v'],
+		['attention_proj', 'attention proj'],
+		['mlp', 'mlp'],
+		['norms', 'norms'],
+		['output_head', 'output/head'],
+		['optimizer_0', 'optimizer 0'],
+		['optimizer_1', 'optimizer 1'],
 	];
 	const overviewMetrics = [
 		{
@@ -356,12 +355,20 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 			higherMeans: 'persistent updates',
 		},
 		{
-			label: 'Gradient Amplification',
-			metric: 'update_grad_norm_ratio',
+			label: 'Gradient Norm',
+			metric: 'grad_norm',
 			scale: 'log',
-			description: 'Update norm relative to gradient norm.',
-			lowMeans: 'damped',
-			higherMeans: 'amplified steps',
+			description: 'Per-parameter gradient magnitude.',
+			lowMeans: 'smaller gradients',
+			higherMeans: 'larger gradients',
+		},
+		{
+			label: 'Update Norm',
+			metric: 'update_norm',
+			scale: 'log',
+			description: 'Per-parameter update magnitude.',
+			lowMeans: 'smaller updates',
+			higherMeans: 'larger updates',
 		},
 		{
 			label: 'Relative Step Size',
@@ -372,29 +379,29 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 			higherMeans: 'larger steps',
 		},
 		{
-			label: 'Entrywise Coupling',
-			metric: 'update_abs_grad_abs_corr',
-			description: 'Whether large gradients get large updates.',
-			lowMeans: 'decoupled',
-			higherMeans: 'coupled',
+			label: 'Effective LR Spread',
+			metric: 'update_effective_lr_log_std',
+			description: 'How uneven entrywise effective learning rates are.',
+			lowMeans: 'uniform',
+			higherMeans: 'more varied',
 		},
 		{
-			label: 'Update Concentration',
-			metric: 'update_linf_l2_ratio',
-			description: 'How much update mass sits in one coordinate.',
-			lowMeans: 'spread out',
-			higherMeans: 'concentrated',
+			label: 'RMS Suppression',
+			metric: 'update_grad_rms_suppression_corr',
+			description: 'Correlation between gradient RMS history and effective LR.',
+			lowMeans: 'suppressed high RMS',
+			higherMeans: 'favored high RMS',
 		},
 		{
-			label: 'Update Diffuseness',
-			metric: 'update_l1_l2_ratio',
-			description: 'How broadly update mass spreads across coordinates.',
-			lowMeans: 'spiky',
-			higherMeans: 'diffuse',
+			label: 'Coverage',
+			metric: 'update_cumulative_coverage',
+			description: 'How broadly cumulative update mass spreads.',
+			lowMeans: 'concentrated',
+			higherMeans: 'broader coverage',
 		},
 		{
-			label: 'Matrix Spread',
-			metric: 'update_stable_rank',
+			label: 'Matrix Rank Fraction',
+			metric: 'update_rank_fraction',
 			description: 'How many singular directions carry update mass.',
 			lowMeans: 'low-rank',
 			higherMeans: 'broad spread',
@@ -407,9 +414,9 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 			higherMeans: 'unbalanced',
 		},
 	];
-	const optimizerNames = [...new Set(fingerprints.map((fingerprint) => fingerprint.optimizer.name))].sort();
+	const optimizerNames = [...new Set(runs.map((run) => run.optimizer.name))].sort();
 	const runsByOptimizer = new Map(
-		optimizerNames.map((name) => [name, fingerprints.filter((fingerprint) => fingerprint.optimizer.name === name)]),
+		optimizerNames.map((name) => [name, runs.filter((run) => run.optimizer.name === name)]),
 	);
 	const selectedOptimizerSlots = optimizerNames.slice(0, Math.min(2, optimizerNames.length));
 
@@ -506,18 +513,17 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		const params = fingerprint.snapshots[0].parameters;
 		if (set === 'all_parameters') return params;
 		const predicates = {
-			conv_weights: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.weight'),
-			conv_biases: (parameter) => parameter.name.includes('conv') && parameter.name.endsWith('.bias'),
-			batchnorm_weights: (parameter) => parameter.name.includes('bn') && parameter.name.endsWith('.weight'),
-			batchnorm_biases: (parameter) => parameter.name.includes('bn') && parameter.name.endsWith('.bias'),
-			all_weights: (parameter) => parameter.name.endsWith('.weight'),
-			all_biases: (parameter) => parameter.name.endsWith('.bias'),
-			layer1: (parameter) => parameter.name.startsWith('layer1'),
-			layer2: (parameter) => parameter.name.startsWith('layer2'),
-			layer3: (parameter) => parameter.name.startsWith('layer3'),
-			layer4: (parameter) => parameter.name.startsWith('layer4'),
-			downsample: (parameter) => parameter.name.includes('downsample'),
-			fc: (parameter) => parameter.name.startsWith('fc'),
+			matrix_parameters: (parameter) => parameter.ndim >= 2,
+			vector_parameters: (parameter) => parameter.ndim < 2,
+			embeddings: (parameter) => parameter.name.includes('embed') || parameter.name.includes('wte') || parameter.name.includes('wpe'),
+			attention: (parameter) => parameter.name.includes('.attn.'),
+			attention_qkv: (parameter) => ['.attn.q.', '.attn.k.', '.attn.v.'].some((part) => parameter.name.includes(part)),
+			attention_proj: (parameter) => parameter.name.includes('.attn.proj.') || parameter.name === 'proj.weight',
+			mlp: (parameter) => parameter.name.includes('.mlp.') || parameter.name.includes('.ffn.'),
+			norms: (parameter) => parameter.name.includes('norm') || parameter.name.includes('.ln'),
+			output_head: (parameter) => parameter.name.includes('head') || parameter.name === 'proj.weight' || parameter.name.includes('lm_head'),
+			optimizer_0: (parameter) => parameter.optimizer_index === 0,
+			optimizer_1: (parameter) => parameter.optimizer_index === 1,
 		};
 		return params.filter(predicates[set] ?? (() => false));
 	}
@@ -620,7 +626,7 @@ const fingerprints = loadFingerprints().map((entry) => ({ full: entry.full }));
 		if (!values.length) {
 			const empty = document.createElement('div');
 			empty.className = 'empty-chart';
-			empty.textContent = selectedNames().length ? 'No finite values' : 'No optimizers selected';
+			empty.textContent = selectedNames().length ? 'No finite values' : 'No runs selected';
 			host.replaceChildren(empty);
 			return;
 		}

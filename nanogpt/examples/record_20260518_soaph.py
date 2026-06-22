@@ -9,12 +9,12 @@ import os
 import sys
 with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
-import random
 import uuid
 import time
+import random
 from pathlib import Path
 
-# Keep this example directly runnable via `torchrun nanogpt/examples/aurora.py`.
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from nanogpt.wrapper import OptimizerFingerprint
 
@@ -23,9 +23,9 @@ from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
-import numpy as np
 
 import wandb
+
 
 ########################################
 #              Dataloader              #
@@ -167,128 +167,239 @@ class GPT(nn.Module):
 #              Optimizer               #
 ########################################
 
-# Hyperparameters for Contra-Muon and u/w-floor (locked for this submission).
-CONTRA_MUON = 0.4   # Contra-Muon perturbation strength (subtract 0.2 * normalized_grad).
-TARGET_UW = 0.35    # u/w-floor target ratio: ||u||_F / ||w||_F >= this.
+@torch.no_grad()
+def scale_invariant_update_(param: Tensor, update: Tensor, lr: float, eps: float = 1e-10):
+    p_norm = param.norm()
+    u_norm = update.norm()
+    new_param = param - lr * update * p_norm / torch.clamp(u_norm, min=eps)
+    param.copy_(new_param / torch.clamp(new_param.norm(), min=eps) * p_norm)
 
-def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
-    assert G.ndim >= 2
-    X = G.bfloat16()
-    if G.size(-2) > G.size(-1):
-        X = X.mT
 
-    # Ensure spectral norm is at most 1
-    X = X / (X.norm(dim=(-2, -1), keepdim=True) + 1e-7)
-    # Perform the NS iterations, not optimizing for wallclock speed
-    a, b, c = 2, -1.5, 0.5
-    for _ in range(12):
-        A = X @ X.mT
-        B = b * A + c * A @ A
-        X = a * X + B @ X
+def _symmetrize(matrix: Tensor) -> Tensor:
+    return 0.5 * (matrix + matrix.T)
 
-    if G.size(-2) > G.size(-1):
-        X = X.mT
-    return X
 
-def aurora_orthogonalize(G: Tensor, pp_iterations: int = 2, pp_beta: float = 0.5,
-                        eps: float = 1e-7) -> Tensor:
-    """Aurora: leverage-uniform polar via diagonal preconditioning.
+def _initial_orthogonal_matrix(matrix: Tensor) -> Tensor:
+    matrix = _symmetrize(matrix.float())
+    eye = torch.eye(matrix.shape[0], device=matrix.device, dtype=torch.float32)
+    try:
+        _, q = torch.linalg.eigh(matrix + 1e-30 * eye)
+    except RuntimeError:
+        _, q = torch.linalg.eigh((matrix + 1e-30 * eye).double())
+        q = q.float()
+    return torch.flip(q, dims=[1]).contiguous()
 
-    Reference: tilde-research/aurora-release.
-
-    For tall G [m, n] with m > n, returns polar(D * G) where the positive diagonal
-    D is chosen so the result's row norms are uniformly sqrt(n / m). For wide G,
-    transpose to tall, apply, transpose back. For square G, reduces to standard polar.
-    """
-    m, n = G.size(-2), G.size(-1)
-    if m == n:
-        return zeropower_via_newtonschulz5(G)
-    transposed = m < n
-    if transposed:
-        G = G.mT
-        m, n = n, m
-    G32 = G.to(torch.float32)
-    target_row_sq = n / m
-    row_norm = G32.norm(dim=-1, keepdim=True).clamp_(min=eps)
-    D = 1.0 / row_norm
-    for k in range(pp_iterations):
-        U = zeropower_via_newtonschulz5(D * G32)
-        if k < pp_iterations - 1:
-            row_sq = U.to(torch.float32).pow(2).sum(dim=-1, keepdim=True).clamp_(min=eps * eps)
-            D = D * (target_row_sq / row_sq).pow(pp_beta)
-    return U.mT if transposed else U
-
-def scale_to_unit_operator_norm(G: Tensor, eps: float = 1e-10) -> Tensor:
-    """Power iteration estimate of operator-norm direction (for Contra-Muon)."""
-    X = G.float()
-    v = torch.ones(X.size(-1), dtype=X.dtype, device=X.device)
-    v = v / torch.clamp(v.norm(), min=eps)
-    for _ in range(5):
-        u = X @ v
-        u = u / torch.clamp(u.norm(), min=eps)
-        v = X.mT @ u
-        v = v / torch.clamp(v.norm(), min=eps)
-    sigma = (X @ v).norm()
-    return X / torch.clamp(sigma, min=eps)
 
 @torch.compile
-def muon_update(grad, momentum, mu=0.95, nesterov=True, pp_iterations=2, pp_beta=0.5):
-    """Aurora polar + Contra-Muon correction + spectral aspect-ratio scale."""
-    momentum.lerp_(grad, 1 - mu)
-    update = grad.lerp_(momentum, mu) if nesterov else momentum
-    normalized_grad = scale_to_unit_operator_norm(update.clone())
-    update = aurora_orthogonalize(update, pp_iterations=pp_iterations, pp_beta=pp_beta)
-    polar_fro = update.norm()
-    update = update - CONTRA_MUON / 2 * normalized_grad
-    update = update * polar_fro / torch.clamp(update.norm(), min=1e-10)
-    update *= max(1, grad.size(-2) / grad.size(-1))**0.5
-    return update
+def soap_update(
+    grad: Tensor,
+    momentum_buffer: Tensor,
+    square_buffer: Tensor,
+    left_buffer: Tensor,
+    right_buffer: Tensor,
+    Q_left: Tensor,
+    Q_right: Tensor,
+    momentum: float,
+    ema_beta: float,
+    eps: float,
+) -> Tensor:
+    # Momentum EMA:
+    momentum_buffer.lerp_(grad, 1.0 - momentum)
 
-class Muon(torch.optim.Optimizer):
-    """Aurora + Contra-Muon optimizer with u/w-floor (applied in step).
+    M = momentum_buffer
 
-    Args:
-        params: list of parameters to optimize (must be 2D+).
-        lr: learning rate.
-        weight_decay: should be 0 (u/w-floor replaces wd's role here).
-        mu: momentum decay.
-        pp_iterations / pp_beta: Aurora diagonal-preconditioning hyperparameters.
-    """
-    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95,
-                 pp_iterations=2, pp_beta=0.5):
-        assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
-        assert pp_iterations >= 1
-        assert 0.0 < pp_beta <= 1.0
-        params = sorted(params, key=lambda x: x.size(), reverse=True)
-        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu,
-                        pp_iterations=pp_iterations, pp_beta=pp_beta)
+    # Matrix second moments:
+    left_buffer.mul_(ema_beta).addmm_(
+        grad,
+        grad.T,
+        beta=1.0,
+        alpha=1.0 - ema_beta,
+    )
+
+    right_buffer.mul_(ema_beta).addmm_(
+        grad.T,
+        grad,
+        beta=1.0,
+        alpha=1.0 - ema_beta,
+    )
+
+    # Project into current SOAP basis.
+    M_eigen = Q_left.T @ M @ Q_right
+    G_eigen = Q_left.T @ grad @ Q_right
+
+    # Diagonal second moment in SOAP basis.
+    square_buffer.mul_(ema_beta).addcmul_(
+        G_eigen,
+        G_eigen,
+        value=1.0 - ema_beta,
+    )
+
+    # Precondition in SOAP basis and rotate back.
+    U_eigen = M_eigen / square_buffer.sqrt().add(eps)
+    U = Q_left @ U_eigen @ Q_right.T
+
+    return U
+
+
+class SOAPH(torch.optim.Optimizer):
+    def __init__(
+        self,
+        params,
+        lr: float = 1e-2,
+        ema_beta: float = 0.9,
+        momentum: float = 0.95,
+        q_freq: int = 1,
+        eps: float = 1e-8,
+        hyperball_eps: float = 1e-10,
+    ):
+        assert isinstance(params, list)
+        assert len(params) >= 1
+        assert isinstance(params[0], torch.nn.Parameter)
+
+        for p in params:
+            assert p.ndim == 2, f"SOAPH here expects only 2D parameters, got shape {tuple(p.shape)}"
+
+        params = sorted(params, key=lambda x: x.numel(), reverse=True)
+
+        defaults = dict(
+            lr=lr,
+            ema_beta=ema_beta,
+            momentum=momentum,
+            q_freq=q_freq,
+            eps=eps,
+            hyperball_eps=hyperball_eps,
+        )
+
+        print("SOAPH hyperparams:", defaults)
+
         super().__init__(params, defaults)
 
     @torch.no_grad()
-    def step(self):
-        world_size = dist.get_world_size()
-        rank = dist.get_rank()
+    def _init_state(self, p: Tensor, state: dict) -> None:
+        m, n = p.shape
+
+        state["step"] = 0
+
+        state["momentum_buffer"] = torch.zeros_like(p)
+        state["square_buffer"] = torch.zeros_like(p)
+
+        state["left_buffer"] = torch.zeros(
+            (m, m),
+            dtype=p.dtype,
+            device=p.device,
+        )
+
+        state["right_buffer"] = torch.zeros(
+            (n, n),
+            dtype=p.dtype,
+            device=p.device,
+        )
+
+        state['Q_left'] = _initial_orthogonal_matrix(p.grad @ p.grad.T)
+        state["Q_right"] = _initial_orthogonal_matrix(p.grad.T @ p.grad)
+
+    @torch.no_grad()
+    def _refresh_q(self, state: dict) -> None:
+        L = state["left_buffer"]
+        R = state["right_buffer"]
+
+        Q_left_old = state["Q_left"]
+        Q_right_old = state["Q_right"]
+
+        Q_left, _ = torch.linalg.qr(
+            L.float() @ Q_left_old.float(),
+            mode="reduced",
+        )
+
+        Q_right, _ = torch.linalg.qr(
+            R.float() @ Q_right_old.float(),
+            mode="reduced",
+        )
+
+        state["Q_left"].copy_(Q_left.to(dtype=Q_left_old.dtype))
+        state["Q_right"].copy_(Q_right.to(dtype=Q_right_old.dtype))
+
+    @torch.no_grad()
+    def _step_param(self, p: Tensor, group: dict) -> None:
+        if p.grad is None:
+            return
+
+        if p.grad.is_sparse:
+            raise RuntimeError("SOAPH does not support sparse gradients")
+
+        if p.ndim != 2:
+            raise RuntimeError(f"SOAPH expects only 2D parameters, got shape {tuple(p.shape)}")
+
+        grad = p.grad
+        state = self.state[p]
+
+        if len(state) == 0:
+            self._init_state(p, state)
+
+        lr = group["lr"]
+        ema_beta = group["ema_beta"]
+        momentum = group["momentum"]
+        q_freq = group["q_freq"]
+        eps = group["eps"]
+        hyperball_eps = group["hyperball_eps"]
+
+        state["step"] += 1
+        step = state["step"]
+
+        update = soap_update(
+            grad=grad,
+            momentum_buffer=state["momentum_buffer"],
+            square_buffer=state["square_buffer"],
+            left_buffer=state["left_buffer"],
+            right_buffer=state["right_buffer"],
+            Q_left=state["Q_left"],
+            Q_right=state["Q_right"],
+            momentum=momentum,
+            ema_beta=ema_beta,
+            eps=eps,
+        )
+
+        if step % q_freq == 0:
+            self._refresh_q(state)
+
+        scale_invariant_update_(
+            param=p,
+            update=update,
+            lr=lr,
+            eps=hyperball_eps,
+        )
+
+    @torch.no_grad()
+    def step(self, closure=None):
+        loss = None
+
+        if closure is not None:
+            with torch.enable_grad():
+                loss = closure()
+
+        distributed = dist.is_available() and dist.is_initialized()
+
+        if distributed:
+            world_size = dist.get_world_size()
+            rank = dist.get_rank()
+        else:
+            world_size = 1
+            rank = 0
+
         for group in self.param_groups:
             params = group["params"]
-            params_pad = params + [torch.empty_like(params[-1])] * (world_size - len(params) % world_size)
-            for base_i in range(0, len(params), world_size):
-                if base_i + rank < len(params):
-                    p = params[base_i + rank]
-                    state = self.state[p]
-                    if len(state) == 0:
-                        state["momentum"] = torch.zeros_like(p)
-                    update = muon_update(p.grad, state["momentum"], mu=group["mu"],
-                                         pp_iterations=group["pp_iterations"],
-                                         pp_beta=group["pp_beta"])
-                    # u/w-floor: scale update so ||u||_F / ||w||_F >= TARGET_UW.
-                    p_fro = p.float().norm().clamp_min(1e-8)
-                    u_fro = update.float().norm().clamp_min(1e-8)
-                    cur_uw = u_fro / p_fro
-                    scale = torch.where(cur_uw < TARGET_UW, TARGET_UW * p_fro / u_fro, torch.ones_like(p_fro))
-                    update = update * scale.to(update.dtype)
-                    # weight_decay=0 (u/w-floor replaces decoupled weight decay).
-                    p.add_(update, alpha=-group["lr"])
-                dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
+
+            for i, p in enumerate(params):
+                owner = i % world_size
+
+                if rank == owner:
+                    self._step_param(p, group)
+
+                if distributed:
+                    dist.broadcast(p, src=owner)
+
+        return loss
+
 
 
 ########################################
@@ -301,7 +412,10 @@ torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
 _nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
 random.seed(_nanogpt_seed)
-np.random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
 torch.manual_seed(_nanogpt_seed)
 torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
@@ -328,6 +442,11 @@ print0(f"Running PyTorch {torch.version.__version__} compiled for CUDA {torch.ve
        + f" on {torch.cuda.get_device_name(device)} with world_size {dist.get_world_size()}")
 print0("="*100)
 
+train_seed = int(os.environ.get("SOAP_SEED", "1"))
+# Original record seed disabled for array control: torch.manual_seed(train_seed)
+# Original record seed disabled for array control: torch.cuda.manual_seed_all(train_seed)
+print0(f"Using seed={train_seed}", console=True)
+
 val_tokens = 20 * 524288
 batch_size = 8 * 64 * 1024
 mbs = 64
@@ -337,9 +456,11 @@ model = GPT(vocab_size=50304, num_layers=12, model_dim=768).cuda()
 model.compile(dynamic=False)
 
 
-num_trials = int(sys.argv[-1]) if len(sys.argv) > 1 else 1
+num_trials = 1
 
-for trial in range(num_trials):
+
+
+for _ in range(num_trials):
 
 
     ########################################
@@ -347,34 +468,49 @@ for trial in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3200
+    train_steps = 3125
+    lr_steps = 3200
+    lr = 0.018
+    lr_power = 1.25
+    lr_floor = 0.0
+
 
     # initialize model parameters
+    for module in model.modules():
+        if hasattr(module, "reset_parameters"):
+            module.reset_parameters()
     for name, p in model.named_parameters():
-        w = p.data
-        if name.endswith("weight"):
-            if "proj" in name:
-                w.zero_()
-            elif "embed" in name:
-                w.normal_()  # default torch init
-            else:
-                w.normal_(std=0.33**0.5 / w.size(-1)**0.5)  # default torch init
-        elif name.endswith("bias"):
-            w.zero_()
-        elif name.endswith("gains"):
-            w.normal_(mean=1, std=0)
-        else:
-            raise Exception(f"Uninitialized parameter: {name}")
+        if name.endswith("gains"):
+            p.data.fill_(1)
+        elif name.endswith(".attn.proj.weight"):
+            p.data.mul_(1.25)
+        elif name.endswith(".mlp.proj.weight"):
+            p.data.mul_(3.0)
+        elif name.endswith(".mlp.fc.weight"):
+            p.data.mul_(1.5)
+        elif name == "proj.weight":
+            p.data.zero_()
+        elif "proj" in name:
+            p.data.zero_()
 
     # create the optimizer(s)
+    named_block_params = [(n, p) for n, p in model.named_parameters()
+                          if n.startswith("blocks.") and p.ndim >= 2]
+    qkv_params = [p for n, p in named_block_params
+                  if n.endswith(".attn.q.weight") or n.endswith(".attn.k.weight") or n.endswith(".attn.v.weight")]
+    mlp_fc_params = [p for n, p in named_block_params if n.endswith(".mlp.fc.weight")]
+    attn_proj_params = [p for n, p in named_block_params if n.endswith(".attn.proj.weight")]
+    mlp_proj_params = [p for n, p in named_block_params if n.endswith(".mlp.proj.weight")]
+
     optimizer1 = AdamW([dict(params=[model.embed.weight], lr=0.3),
                         dict(params=[model.proj.weight], lr=1/320),
                         dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
                        betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
-    optimizer2 = Muon([p for p in model.blocks.parameters() if p.ndim >= 2],
-                      lr=0.0375, weight_decay=0,
-                      pp_iterations=2, pp_beta=0.5)
-    optimizers = [optimizer1, optimizer2]
+    optimizer2 = SOAPH(qkv_params, lr=lr)
+    optimizer3 = SOAPH(mlp_fc_params, lr=lr)
+    optimizer4 = SOAPH(attn_proj_params, lr=lr)
+    optimizer5 = SOAPH(mlp_proj_params, lr=lr)
+    optimizers = [optimizer1, optimizer2, optimizer3, optimizer4, optimizer5]
     assert set(p for opt in optimizers for group in opt.param_groups
                for p in group["params"]) == set(model.parameters())
     for opt in optimizers:
@@ -385,29 +521,60 @@ for trial in range(num_trials):
     if dist.get_rank() == 0:
         wandb_run = wandb.init(
             project=os.environ.get("WANDB_PROJECT", "nanogpt-fingerprinting"),
-            name="aurora" if num_trials == 1 else f"aurora-{trial}",
+            name='20260518_soaph',
         )
         print0(f"wandb run:{wandb_run.url}", console=True)
-
-    # learning rate schedule: stable then decay
-    def set_hparams(step, cooldown_frac=0.7):
-        progress = step / train_steps
-        assert 0 <= progress < 1
-        if progress < 1 - cooldown_frac:
-            eta = 1.0
-        else:
-            eta = (1 - progress) / cooldown_frac
-        for opt in optimizers:
-            for group in opt.param_groups:
-                group["lr"] = group["initial_lr"] * eta
 
     fingerprint = OptimizerFingerprint.attach(
         model,
         optimizers,
-        run_name="aurora",
-        snapshot_interval=50,
+        run_name='20260518_soaph',
+        snapshot_interval=25,
         wandb_run=wandb_run,
     )
+
+    # learning rate schedule: stable then decay
+    for opt in (optimizer2, optimizer3, optimizer4, optimizer5):
+        for group in opt.param_groups:
+            group["cooldown_frac"] = 1.0
+            group["schedule_steps"] = lr_steps
+            group["lr_power"] = lr_power
+            group["lr_floor"] = lr_floor
+
+    for group in optimizer1.param_groups:
+        group["cooldown_frac"] = 0.4
+        group["schedule_steps"] = train_steps
+        group["lr_power"] = 1.0
+        group["lr_floor"] = 0.0
+
+
+    def _eta(progress: float, cooldown_frac: float, power: float = 1.0, floor: float = 0.0) -> float:
+        if progress < 1.0 - cooldown_frac:
+            return 1.0
+
+        x = max(0.0, (1.0 - progress) / cooldown_frac)
+        return floor + (1.0 - floor) * (x ** power)
+
+
+    def set_hparams(step):
+        for opt in optimizers:
+            for group in opt.param_groups:
+                schedule_steps = group.get("schedule_steps", train_steps)
+                cooldown_frac = group.get("cooldown_frac", 1.0)
+                power = group.get("lr_power", 1.0)
+                floor = group.get("lr_floor", 0.0)
+
+                progress = step / schedule_steps
+                assert 0.0 <= progress < 1.0
+
+                eta = _eta(
+                    progress=progress,
+                    cooldown_frac=cooldown_frac,
+                    power=power,
+                    floor=floor,
+                )
+
+                group["lr"] = group["initial_lr"] * eta
 
 
     ########################################
@@ -472,6 +639,7 @@ for trial in range(num_trials):
     fingerprint_path = fingerprint.finish()
     if fingerprint_path is not None:
         print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
     if wandb_run is not None:
         wandb_run.finish()
 

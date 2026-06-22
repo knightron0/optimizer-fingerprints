@@ -9,12 +9,12 @@ import os
 import sys
 with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
-import random
 import uuid
 import time
+import random
 from pathlib import Path
 
-# Keep this example directly runnable via `torchrun nanogpt/examples/aurora.py`.
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from nanogpt.wrapper import OptimizerFingerprint
 
@@ -23,9 +23,9 @@ from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
-import numpy as np
 
 import wandb
+
 
 ########################################
 #              Dataloader              #
@@ -167,10 +167,6 @@ class GPT(nn.Module):
 #              Optimizer               #
 ########################################
 
-# Hyperparameters for Contra-Muon and u/w-floor (locked for this submission).
-CONTRA_MUON = 0.4   # Contra-Muon perturbation strength (subtract 0.2 * normalized_grad).
-TARGET_UW = 0.35    # u/w-floor target ratio: ||u||_F / ||w||_F >= this.
-
 def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
     assert G.ndim >= 2
     X = G.bfloat16()
@@ -190,78 +186,48 @@ def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
         X = X.mT
     return X
 
-def aurora_orthogonalize(G: Tensor, pp_iterations: int = 2, pp_beta: float = 0.5,
-                        eps: float = 1e-7) -> Tensor:
-    """Aurora: leverage-uniform polar via diagonal preconditioning.
-
-    Reference: tilde-research/aurora-release.
-
-    For tall G [m, n] with m > n, returns polar(D * G) where the positive diagonal
-    D is chosen so the result's row norms are uniformly sqrt(n / m). For wide G,
-    transpose to tall, apply, transpose back. For square G, reduces to standard polar.
-    """
-    m, n = G.size(-2), G.size(-1)
-    if m == n:
-        return zeropower_via_newtonschulz5(G)
-    transposed = m < n
-    if transposed:
-        G = G.mT
-        m, n = n, m
-    G32 = G.to(torch.float32)
-    target_row_sq = n / m
-    row_norm = G32.norm(dim=-1, keepdim=True).clamp_(min=eps)
-    D = 1.0 / row_norm
-    for k in range(pp_iterations):
-        U = zeropower_via_newtonschulz5(D * G32)
-        if k < pp_iterations - 1:
-            row_sq = U.to(torch.float32).pow(2).sum(dim=-1, keepdim=True).clamp_(min=eps * eps)
-            D = D * (target_row_sq / row_sq).pow(pp_beta)
-    return U.mT if transposed else U
-
-def scale_to_unit_operator_norm(G: Tensor, eps: float = 1e-10) -> Tensor:
-    """Power iteration estimate of operator-norm direction (for Contra-Muon)."""
-    X = G.float()
-    v = torch.ones(X.size(-1), dtype=X.dtype, device=X.device)
-    v = v / torch.clamp(v.norm(), min=eps)
-    for _ in range(5):
-        u = X @ v
-        u = u / torch.clamp(u.norm(), min=eps)
-        v = X.mT @ u
-        v = v / torch.clamp(v.norm(), min=eps)
-    sigma = (X @ v).norm()
-    return X / torch.clamp(sigma, min=eps)
+@torch.no_grad()
+def _streaming_cov_power(C, state, key, gamma, eps=1e-6):
+    n = C.size(0)
+    Q = state.get(key, None)
+    if Q is None or Q.shape != (n, n) or Q.device != C.device:
+        Q, _ = torch.linalg.qr(
+            torch.randn(n, n, device=C.device, dtype=C.dtype), mode='reduced',
+        )
+    Q, _ = torch.linalg.qr(C @ Q, mode='reduced')
+    state[key] = Q.detach()
+    lam = (Q * (C @ Q)).sum(dim=0).clamp_min(eps)
+    d = lam.pow(-gamma)
+    res = Q @ torch.diag(d) @ Q.T
+    res *= (n ** 0.5 / (d.norm() + eps))
+    return res
 
 @torch.compile
-def muon_update(grad, momentum, mu=0.95, nesterov=True, pp_iterations=2, pp_beta=0.5):
-    """Aurora polar + Contra-Muon correction + spectral aspect-ratio scale."""
-    momentum.lerp_(grad, 1 - mu)
-    update = grad.lerp_(momentum, mu) if nesterov else momentum
-    normalized_grad = scale_to_unit_operator_norm(update.clone())
-    update = aurora_orthogonalize(update, pp_iterations=pp_iterations, pp_beta=pp_beta)
-    polar_fro = update.norm()
-    update = update - CONTRA_MUON / 2 * normalized_grad
-    update = update * polar_fro / torch.clamp(update.norm(), min=1e-10)
-    update *= max(1, grad.size(-2) / grad.size(-1))**0.5
-    return update
+def pmuon_update(grad, momentum_buf, cov_buf, out_buf, mu=0.95, beta=0.95,
+                 gamma=0.3, nesterov=True):
+    momentum_buf.lerp_(grad, 1 - mu)
+    u = grad.lerp_(momentum_buf, mu) if nesterov else momentum_buf
+
+    eps = 1e-6
+    cov_ = grad.mT @ grad
+    cov_buf.mul_(beta).add_(cov_)
+    C_reg = torch.add(cov_, cov_buf, alpha=beta)
+    C_reg.diagonal().add_(eps)
+
+    out_ = grad @ grad.mT
+    out_buf.mul_(beta).add_(out_)
+    A_reg = torch.add(out_, out_buf, alpha=beta)
+    A_reg.diagonal().add_(eps)
+
+    return u, C_reg, A_reg
 
 class Muon(torch.optim.Optimizer):
-    """Aurora + Contra-Muon optimizer with u/w-floor (applied in step).
-
-    Args:
-        params: list of parameters to optimize (must be 2D+).
-        lr: learning rate.
-        weight_decay: should be 0 (u/w-floor replaces wd's role here).
-        mu: momentum decay.
-        pp_iterations / pp_beta: Aurora diagonal-preconditioning hyperparameters.
-    """
     def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95,
-                 pp_iterations=2, pp_beta=0.5):
+                 gamma=0.3, beta=0.95):
         assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
-        assert pp_iterations >= 1
-        assert 0.0 < pp_beta <= 1.0
         params = sorted(params, key=lambda x: x.size(), reverse=True)
         defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu,
-                        pp_iterations=pp_iterations, pp_beta=pp_beta)
+                        gamma=gamma, beta=beta)
         super().__init__(params, defaults)
 
     @torch.no_grad()
@@ -277,16 +243,24 @@ class Muon(torch.optim.Optimizer):
                     state = self.state[p]
                     if len(state) == 0:
                         state["momentum"] = torch.zeros_like(p)
-                    update = muon_update(p.grad, state["momentum"], mu=group["mu"],
-                                         pp_iterations=group["pp_iterations"],
-                                         pp_beta=group["pp_beta"])
-                    # u/w-floor: scale update so ||u||_F / ||w||_F >= TARGET_UW.
-                    p_fro = p.float().norm().clamp_min(1e-8)
-                    u_fro = update.float().norm().clamp_min(1e-8)
-                    cur_uw = u_fro / p_fro
-                    scale = torch.where(cur_uw < TARGET_UW, TARGET_UW * p_fro / u_fro, torch.ones_like(p_fro))
-                    update = update * scale.to(update.dtype)
-                    # weight_decay=0 (u/w-floor replaces decoupled weight decay).
+                        state["cov"] = torch.zeros(p.size(1), p.size(1),
+                                                   device=p.device, dtype=p.dtype)
+                        state["out"] = torch.zeros(p.size(0), p.size(0),
+                                                   device=p.device, dtype=p.dtype)
+
+                    u, C_reg, A_reg = pmuon_update(
+                        p.grad, state["momentum"], state["cov"], state["out"],
+                        mu=group["mu"], beta=group["beta"],
+                        gamma=group["gamma"], nesterov=True,
+                    )
+                    C_neg = _streaming_cov_power(C_reg, state, 'cov_Q',
+                                                 group["gamma"])
+                    A_neg = _streaming_cov_power(A_reg, state, 'out_Q',
+                                                 group["gamma"])
+                    update = zeropower_via_newtonschulz5(A_neg @ u @ C_neg)
+                    update *= max(1, p.size(-2) / p.size(-1))**0.5
+
+                    p.mul_(1 - group["lr"] * group["weight_decay"])
                     p.add_(update, alpha=-group["lr"])
                 dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
 
@@ -301,7 +275,10 @@ torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
 _nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
 random.seed(_nanogpt_seed)
-np.random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
 torch.manual_seed(_nanogpt_seed)
 torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
@@ -339,7 +316,7 @@ model.compile(dynamic=False)
 
 num_trials = int(sys.argv[-1]) if len(sys.argv) > 1 else 1
 
-for trial in range(num_trials):
+for _ in range(num_trials):
 
 
     ########################################
@@ -347,7 +324,7 @@ for trial in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3200
+    train_steps = 3250
 
     # initialize model parameters
     for name, p in model.named_parameters():
@@ -372,8 +349,7 @@ for trial in range(num_trials):
                         dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
                        betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
     optimizer2 = Muon([p for p in model.blocks.parameters() if p.ndim >= 2],
-                      lr=0.0375, weight_decay=0,
-                      pp_iterations=2, pp_beta=0.5)
+                      lr=0.035, weight_decay=0.025)
     optimizers = [optimizer1, optimizer2]
     assert set(p for opt in optimizers for group in opt.param_groups
                for p in group["params"]) == set(model.parameters())
@@ -385,9 +361,17 @@ for trial in range(num_trials):
     if dist.get_rank() == 0:
         wandb_run = wandb.init(
             project=os.environ.get("WANDB_PROJECT", "nanogpt-fingerprinting"),
-            name="aurora" if num_trials == 1 else f"aurora-{trial}",
+            name='20260507_pmuon',
         )
         print0(f"wandb run:{wandb_run.url}", console=True)
+
+    fingerprint = OptimizerFingerprint.attach(
+        model,
+        optimizers,
+        run_name='20260507_pmuon',
+        snapshot_interval=25,
+        wandb_run=wandb_run,
+    )
 
     # learning rate schedule: stable then decay
     def set_hparams(step, cooldown_frac=0.7):
@@ -400,14 +384,6 @@ for trial in range(num_trials):
         for opt in optimizers:
             for group in opt.param_groups:
                 group["lr"] = group["initial_lr"] * eta
-
-    fingerprint = OptimizerFingerprint.attach(
-        model,
-        optimizers,
-        run_name="aurora",
-        snapshot_interval=50,
-        wandb_run=wandb_run,
-    )
 
 
     ########################################
@@ -472,6 +448,7 @@ for trial in range(num_trials):
     fingerprint_path = fingerprint.finish()
     if fingerprint_path is not None:
         print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
     if wandb_run is not None:
         wandb_run.finish()
 

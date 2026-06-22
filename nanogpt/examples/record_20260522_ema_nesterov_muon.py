@@ -9,12 +9,12 @@ import os
 import sys
 with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
-import random
 import uuid
 import time
+import random
 from pathlib import Path
 
-# Keep this example directly runnable via `torchrun nanogpt/examples/aurora.py`.
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from nanogpt.wrapper import OptimizerFingerprint
 
@@ -23,7 +23,6 @@ from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
-import numpy as np
 
 import wandb
 
@@ -167,10 +166,6 @@ class GPT(nn.Module):
 #              Optimizer               #
 ########################################
 
-# Hyperparameters for Contra-Muon and u/w-floor (locked for this submission).
-CONTRA_MUON = 0.4   # Contra-Muon perturbation strength (subtract 0.2 * normalized_grad).
-TARGET_UW = 0.35    # u/w-floor target ratio: ||u||_F / ||w||_F >= this.
-
 def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
     assert G.ndim >= 2
     X = G.bfloat16()
@@ -190,78 +185,19 @@ def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
         X = X.mT
     return X
 
-def aurora_orthogonalize(G: Tensor, pp_iterations: int = 2, pp_beta: float = 0.5,
-                        eps: float = 1e-7) -> Tensor:
-    """Aurora: leverage-uniform polar via diagonal preconditioning.
-
-    Reference: tilde-research/aurora-release.
-
-    For tall G [m, n] with m > n, returns polar(D * G) where the positive diagonal
-    D is chosen so the result's row norms are uniformly sqrt(n / m). For wide G,
-    transpose to tall, apply, transpose back. For square G, reduces to standard polar.
-    """
-    m, n = G.size(-2), G.size(-1)
-    if m == n:
-        return zeropower_via_newtonschulz5(G)
-    transposed = m < n
-    if transposed:
-        G = G.mT
-        m, n = n, m
-    G32 = G.to(torch.float32)
-    target_row_sq = n / m
-    row_norm = G32.norm(dim=-1, keepdim=True).clamp_(min=eps)
-    D = 1.0 / row_norm
-    for k in range(pp_iterations):
-        U = zeropower_via_newtonschulz5(D * G32)
-        if k < pp_iterations - 1:
-            row_sq = U.to(torch.float32).pow(2).sum(dim=-1, keepdim=True).clamp_(min=eps * eps)
-            D = D * (target_row_sq / row_sq).pow(pp_beta)
-    return U.mT if transposed else U
-
-def scale_to_unit_operator_norm(G: Tensor, eps: float = 1e-10) -> Tensor:
-    """Power iteration estimate of operator-norm direction (for Contra-Muon)."""
-    X = G.float()
-    v = torch.ones(X.size(-1), dtype=X.dtype, device=X.device)
-    v = v / torch.clamp(v.norm(), min=eps)
-    for _ in range(5):
-        u = X @ v
-        u = u / torch.clamp(u.norm(), min=eps)
-        v = X.mT @ u
-        v = v / torch.clamp(v.norm(), min=eps)
-    sigma = (X @ v).norm()
-    return X / torch.clamp(sigma, min=eps)
-
 @torch.compile
-def muon_update(grad, momentum, mu=0.95, nesterov=True, pp_iterations=2, pp_beta=0.5):
-    """Aurora polar + Contra-Muon correction + spectral aspect-ratio scale."""
+def muon_update(grad, momentum, mu=0.95, nesterov=True):
     momentum.lerp_(grad, 1 - mu)
     update = grad.lerp_(momentum, mu) if nesterov else momentum
-    normalized_grad = scale_to_unit_operator_norm(update.clone())
-    update = aurora_orthogonalize(update, pp_iterations=pp_iterations, pp_beta=pp_beta)
-    polar_fro = update.norm()
-    update = update - CONTRA_MUON / 2 * normalized_grad
-    update = update * polar_fro / torch.clamp(update.norm(), min=1e-10)
+    update = zeropower_via_newtonschulz5(update)
     update *= max(1, grad.size(-2) / grad.size(-1))**0.5
     return update
 
 class Muon(torch.optim.Optimizer):
-    """Aurora + Contra-Muon optimizer with u/w-floor (applied in step).
-
-    Args:
-        params: list of parameters to optimize (must be 2D+).
-        lr: learning rate.
-        weight_decay: should be 0 (u/w-floor replaces wd's role here).
-        mu: momentum decay.
-        pp_iterations / pp_beta: Aurora diagonal-preconditioning hyperparameters.
-    """
-    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95,
-                 pp_iterations=2, pp_beta=0.5):
+    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95):
         assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
-        assert pp_iterations >= 1
-        assert 0.0 < pp_beta <= 1.0
         params = sorted(params, key=lambda x: x.size(), reverse=True)
-        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu,
-                        pp_iterations=pp_iterations, pp_beta=pp_beta)
+        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu)
         super().__init__(params, defaults)
 
     @torch.no_grad()
@@ -277,18 +213,110 @@ class Muon(torch.optim.Optimizer):
                     state = self.state[p]
                     if len(state) == 0:
                         state["momentum"] = torch.zeros_like(p)
-                    update = muon_update(p.grad, state["momentum"], mu=group["mu"],
-                                         pp_iterations=group["pp_iterations"],
-                                         pp_beta=group["pp_beta"])
-                    # u/w-floor: scale update so ||u||_F / ||w||_F >= TARGET_UW.
-                    p_fro = p.float().norm().clamp_min(1e-8)
-                    u_fro = update.float().norm().clamp_min(1e-8)
-                    cur_uw = u_fro / p_fro
-                    scale = torch.where(cur_uw < TARGET_UW, TARGET_UW * p_fro / u_fro, torch.ones_like(p_fro))
-                    update = update * scale.to(update.dtype)
-                    # weight_decay=0 (u/w-floor replaces decoupled weight decay).
+                    update = muon_update(p.grad, state["momentum"], mu=group["mu"])
+                    p.mul_(1 - group["lr"] * group["weight_decay"])
                     p.add_(update, alpha=-group["lr"])
                 dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
+
+
+class EMA_Nesterov(torch.optim.Optimizer):
+    def __init__(self, params, inner_optimizer, lookahead_stepsize=0, use_scheduled_lookahead_stepsize=True, lookahead_ema=0.9, prefill_steps=0, rest_steps=0):
+        if lookahead_stepsize < 0.0:
+            raise ValueError("Invalid momentum value: {}".format(lookahead_stepsize))
+
+        super(EMA_Nesterov, self).__init__(params, {})
+        self.inner_optimizer = inner_optimizer
+        self.use_scheduled_lookahead_stepsize = use_scheduled_lookahead_stepsize
+        self.lookahead_stepsize = lookahead_stepsize
+        self.lookahead_ema = lookahead_ema
+        self.prefill_steps = prefill_steps
+        self.rest_steps = rest_steps
+        self.it = 0
+        self.lookahead_status = False
+        self.current_lookahead_stepsize = 0
+        self.initialize_buffers()
+
+    def __setstate__(self, state):
+        super(EMA_Nesterov, self).__setstate__(state)
+
+    @torch.no_grad()
+    def initialize_buffers(self):
+        for group in self.param_groups:
+            for p in group['params']:
+                param_state = self.state[p]
+                if 'prev_params' not in param_state:
+                    param_state['prev_params'] = (p.clone(), self.it)
+
+                if 'lookahead_buffer' not in param_state:
+                    param_state['lookahead_buffer'] = (torch.zeros_like(p), -1)
+    
+    def get_lr_lambda(self):
+        if isinstance(self.inner_optimizer, list):
+            lr_lambda = self.inner_optimizer[0].param_groups[0]["lr"] / self.inner_optimizer[0].param_groups[0]["initial_lr"]
+        else:
+            lr_lambda = self.inner_optimizer.param_groups[0]["lr"] / self.inner_optimizer.param_groups[0]["initial_lr"]
+        return lr_lambda
+
+    @torch.no_grad()
+    def lookahead_step(self):
+        """Performs nesterov's lookahead."""
+        if self.use_scheduled_lookahead_stepsize:
+            lookahead_stepsize = self.lookahead_stepsize * self.get_lr_lambda()
+        else:
+            lookahead_stepsize = self.lookahead_stepsize
+        self.current_lookahead_stepsize = lookahead_stepsize
+
+        for group in self.param_groups:
+            for p in group['params']:
+
+                param_state = self.state[p]         
+
+                lookahead = param_state['lookahead_buffer'][0]
+       
+                p.add_(lookahead, alpha=lookahead_stepsize)
+
+
+
+    @torch.no_grad()
+    def accum_lookahead(self):
+        """Update nesterov's lookahead direction."""
+        lookahead_ema = self.lookahead_ema
+        for group in self.param_groups:
+            for p in group['params']:
+                param_state = self.state[p]
+                look = p.add(param_state['prev_params'][0], alpha=-1)
+
+                # update lookahead buffer
+                buf = param_state['lookahead_buffer'][0]
+                param_state['lookahead_buffer'] = (buf.lerp_(look, 1 - lookahead_ema), self.it) # m^{t+1} = beta * m^t + (1-beta) * look
+
+                # update prev_params buffer
+                param_state['prev_params'] = (param_state['prev_params'][0].copy_(p), self.it)
+
+    
+    @torch.no_grad()
+    def nesterov_step(self):
+        if self.it + 1 > self.prefill_steps and self.it < self.rest_steps and not self.lookahead_status:
+            self.lookahead_step()
+        else:
+            self.current_lookahead_stepsize = 0
+        self.lookahead_status = True
+
+    @torch.no_grad()
+    def step(self):
+        if not self.lookahead_status:
+            raise ValueError("optimizer.nesterov_step() should be invoked before model forward pass.")
+        if isinstance(self.inner_optimizer, list):
+            for opt in self.inner_optimizer:
+                opt.step()
+        else:
+            self.inner_optimizer.step()
+        
+        self.accum_lookahead()
+
+        self.lookahead_status = False
+        self.it += 1
+    
 
 
 ########################################
@@ -301,10 +329,14 @@ torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
 _nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
 random.seed(_nanogpt_seed)
-np.random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
 torch.manual_seed(_nanogpt_seed)
 torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
+
 # this code can be run equivalently with 1, 2, 4, or 8 gpus.
 assert 8 % dist.get_world_size() == 0
 
@@ -313,6 +345,7 @@ if dist.get_rank() == 0:
     os.makedirs("logs", exist_ok=True)
     logfile = f"logs/{uuid.uuid4()}.txt"
     print(logfile)
+
 def print0(s, console=False, log=True):
     if dist.get_rank() == 0:
         if console:
@@ -339,7 +372,7 @@ model.compile(dynamic=False)
 
 num_trials = int(sys.argv[-1]) if len(sys.argv) > 1 else 1
 
-for trial in range(num_trials):
+for _ in range(num_trials):
 
 
     ########################################
@@ -347,7 +380,7 @@ for trial in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3200
+    train_steps = 3150
 
     # initialize model parameters
     for name, p in model.named_parameters():
@@ -372,22 +405,39 @@ for trial in range(num_trials):
                         dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
                        betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
     optimizer2 = Muon([p for p in model.blocks.parameters() if p.ndim >= 2],
-                      lr=0.0375, weight_decay=0,
-                      pp_iterations=2, pp_beta=0.5)
+                      lr=0.035, weight_decay=0.025)
     optimizers = [optimizer1, optimizer2]
-    assert set(p for opt in optimizers for group in opt.param_groups
-               for p in group["params"]) == set(model.parameters())
-    for opt in optimizers:
+    optimizers = [EMA_Nesterov(
+        [p for p in model.parameters()],
+        optimizers,
+        lookahead_stepsize=0.6,
+        use_scheduled_lookahead_stepsize=True,
+        lookahead_ema=0.99,
+        prefill_steps=500,
+        rest_steps=train_steps - 750,
+    )]
+    for opt in optimizers[0].inner_optimizer:
         for group in opt.param_groups:
             group["initial_lr"] = group["lr"]
+    assert set(p for opt in optimizers for group in opt.param_groups
+               for p in group["params"]) == set(model.parameters()), "optimizer params mismatch"
+    
 
     wandb_run = None
     if dist.get_rank() == 0:
         wandb_run = wandb.init(
             project=os.environ.get("WANDB_PROJECT", "nanogpt-fingerprinting"),
-            name="aurora" if num_trials == 1 else f"aurora-{trial}",
+            name='20260522_ema_nesterov_muon',
         )
         print0(f"wandb run:{wandb_run.url}", console=True)
+
+    fingerprint = OptimizerFingerprint.attach(
+        model,
+        optimizers,
+        run_name='20260522_ema_nesterov_muon',
+        snapshot_interval=25,
+        wandb_run=wandb_run,
+    )
 
     # learning rate schedule: stable then decay
     def set_hparams(step, cooldown_frac=0.7):
@@ -397,17 +447,9 @@ for trial in range(num_trials):
             eta = 1.0
         else:
             eta = (1 - progress) / cooldown_frac
-        for opt in optimizers:
+        for opt in optimizers[0].inner_optimizer:
             for group in opt.param_groups:
                 group["lr"] = group["initial_lr"] * eta
-
-    fingerprint = OptimizerFingerprint.attach(
-        model,
-        optimizers,
-        run_name="aurora",
-        snapshot_interval=50,
-        wandb_run=wandb_run,
-    )
 
 
     ########################################
@@ -455,6 +497,7 @@ for trial in range(num_trials):
         inputs, targets = next(train_loader)
         # accumulate across microbatches in case we are running with fewer than 8 gpus
         assert len(inputs) % mbs == 0
+        optimizers[0].nesterov_step()
         for i in range(len(inputs) // mbs):
             model(inputs[i*mbs:(i+1)*mbs], targets[i*mbs:(i+1)*mbs]).backward()
         for name, p in model.named_parameters():
@@ -472,6 +515,7 @@ for trial in range(num_trials):
     fingerprint_path = fingerprint.finish()
     if fingerprint_path is not None:
         print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
     if wandb_run is not None:
         wandb_run.finish()
 

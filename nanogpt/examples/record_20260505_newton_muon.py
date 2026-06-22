@@ -1,5 +1,5 @@
 """
-train_gpt_simple.py
+train_gpt_simple_newton_muon.py
 
 This file descends from the [NanoGPT speedrun](https://github.com/KellerJordan/modded-nanogpt).
 It was prepared as a simplified version of the speedrun for use in neural net optimization research.
@@ -9,12 +9,12 @@ import os
 import sys
 with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
-import random
 import uuid
 import time
+import random
 from pathlib import Path
 
-# Keep this example directly runnable via `torchrun nanogpt/examples/aurora.py`.
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from nanogpt.wrapper import OptimizerFingerprint
 
@@ -23,9 +23,9 @@ from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
-import numpy as np
 
 import wandb
+
 
 ########################################
 #              Dataloader              #
@@ -57,6 +57,18 @@ def distributed_data_generator(filename_pattern: str, batch_size: int, seq_len=1
         targets = buf[1:].to(device="cuda", dtype=torch.int64, non_blocking=True)
         pos += batch_size
         yield inputs.view(-1, seq_len), targets.view(-1, seq_len)
+
+@torch.compiler.disable
+@torch.no_grad()
+def accum_xtx_(x: Tensor, accum: Tensor, count: Tensor):
+    x = x.detach().flatten(0, -2).float()
+    if accum.ndim == 2:
+        accum.add_(x.T @ x, alpha=1 / x.size(0))
+    else:
+        n, d = x.size(0), accum.size(-1)
+        x = x.reshape(n, 4, d).permute(1, 2, 0)
+        accum.add_(torch.bmm(x, x.mT), alpha=1 / n)
+    count.add_(1)
 
 
 ########################################
@@ -105,6 +117,10 @@ class CausalSelfAttention(nn.Module):
         self.v = Linear(dim, hdim)
         self.proj = Linear(hdim, dim)
         self.rotary = Rotary(head_dim)
+        self.register_buffer("qkv_xtx", torch.zeros(dim, dim, dtype=torch.float32), persistent=False)
+        self.register_buffer("qkv_count", torch.zeros((), dtype=torch.float32), persistent=False)
+        self.register_buffer("o_xtx", torch.zeros(hdim, hdim, dtype=torch.float32), persistent=False)
+        self.register_buffer("o_count", torch.zeros((), dtype=torch.float32), persistent=False)
 
     def forward(self, x: Tensor):
         B, T = x.size(0), x.size(1)
@@ -125,6 +141,10 @@ class MLP(nn.Module):
         hdim = 4 * dim
         self.fc = Linear(dim, hdim)
         self.proj = Linear(hdim, dim)
+        self.register_buffer("fc_xtx", torch.zeros(dim, dim, dtype=torch.float32), persistent=False)
+        self.register_buffer("fc_count", torch.zeros((), dtype=torch.float32), persistent=False)
+        self.register_buffer("proj_xtx", torch.zeros(4, dim, dim, dtype=torch.float32), persistent=False)
+        self.register_buffer("proj_count", torch.zeros((), dtype=torch.float32), persistent=False)
 
     def forward(self, x: Tensor):
         x = self.fc(x)
@@ -162,14 +182,29 @@ class GPT(nn.Module):
         logits = 15 * logits * (logits.square() + 15**2).rsqrt()
         return F.cross_entropy(logits.view(targets.numel(), -1), targets.view(-1), reduction="sum")
 
+def attach_precond_stats(model: GPT):
+    for block in model.blocks:
+        a, m = block.attn, block.mlp
+        qkv = dict(accum=a.qkv_xtx, count=a.qkv_count)
+        for mod, ref in ((a.q, qkv), (a.k, qkv), (a.v, qkv),
+                         (a.proj, dict(accum=a.o_xtx, count=a.o_count)),
+                         (m.fc, dict(accum=m.fc_xtx, count=m.fc_count)),
+                         (m.proj, dict(accum=m.proj_xtx, count=m.proj_count))):
+            mod.weight._stats_ref = ref
+
+@torch.compiler.disable
+def precond_stat_hook(module, inputs, output):
+    ref = module.weight._stats_ref
+    accum_xtx_(inputs[0], ref["accum"], ref["count"])
+
+def enable_precond_hooks(model: GPT):
+    return [m.register_forward_hook(precond_stat_hook)
+            for b in model.blocks for m in (b.attn.q, b.attn.proj, b.mlp.fc, b.mlp.proj)]
+
 
 ########################################
 #              Optimizer               #
 ########################################
-
-# Hyperparameters for Contra-Muon and u/w-floor (locked for this submission).
-CONTRA_MUON = 0.4   # Contra-Muon perturbation strength (subtract 0.2 * normalized_grad).
-TARGET_UW = 0.35    # u/w-floor target ratio: ||u||_F / ||w||_F >= this.
 
 def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
     assert G.ndim >= 2
@@ -190,82 +225,138 @@ def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
         X = X.mT
     return X
 
-def aurora_orthogonalize(G: Tensor, pp_iterations: int = 2, pp_beta: float = 0.5,
-                        eps: float = 1e-7) -> Tensor:
-    """Aurora: leverage-uniform polar via diagonal preconditioning.
-
-    Reference: tilde-research/aurora-release.
-
-    For tall G [m, n] with m > n, returns polar(D * G) where the positive diagonal
-    D is chosen so the result's row norms are uniformly sqrt(n / m). For wide G,
-    transpose to tall, apply, transpose back. For square G, reduces to standard polar.
-    """
-    m, n = G.size(-2), G.size(-1)
-    if m == n:
-        return zeropower_via_newtonschulz5(G)
-    transposed = m < n
-    if transposed:
-        G = G.mT
-        m, n = n, m
-    G32 = G.to(torch.float32)
-    target_row_sq = n / m
-    row_norm = G32.norm(dim=-1, keepdim=True).clamp_(min=eps)
-    D = 1.0 / row_norm
-    for k in range(pp_iterations):
-        U = zeropower_via_newtonschulz5(D * G32)
-        if k < pp_iterations - 1:
-            row_sq = U.to(torch.float32).pow(2).sum(dim=-1, keepdim=True).clamp_(min=eps * eps)
-            D = D * (target_row_sq / row_sq).pow(pp_beta)
-    return U.mT if transposed else U
-
-def scale_to_unit_operator_norm(G: Tensor, eps: float = 1e-10) -> Tensor:
-    """Power iteration estimate of operator-norm direction (for Contra-Muon)."""
-    X = G.float()
-    v = torch.ones(X.size(-1), dtype=X.dtype, device=X.device)
-    v = v / torch.clamp(v.norm(), min=eps)
-    for _ in range(5):
-        u = X @ v
-        u = u / torch.clamp(u.norm(), min=eps)
-        v = X.mT @ u
-        v = v / torch.clamp(v.norm(), min=eps)
-    sigma = (X @ v).norm()
-    return X / torch.clamp(sigma, min=eps)
-
 @torch.compile
-def muon_update(grad, momentum, mu=0.95, nesterov=True, pp_iterations=2, pp_beta=0.5):
-    """Aurora polar + Contra-Muon correction + spectral aspect-ratio scale."""
+def muon_update(grad, momentum, mu=0.95, nesterov=True):
     momentum.lerp_(grad, 1 - mu)
     update = grad.lerp_(momentum, mu) if nesterov else momentum
-    normalized_grad = scale_to_unit_operator_norm(update.clone())
-    update = aurora_orthogonalize(update, pp_iterations=pp_iterations, pp_beta=pp_beta)
-    polar_fro = update.norm()
-    update = update - CONTRA_MUON / 2 * normalized_grad
-    update = update * polar_fro / torch.clamp(update.norm(), min=1e-10)
+    update = zeropower_via_newtonschulz5(update)
     update *= max(1, grad.size(-2) / grad.size(-1))**0.5
     return update
 
 class Muon(torch.optim.Optimizer):
-    """Aurora + Contra-Muon optimizer with u/w-floor (applied in step).
-
-    Args:
-        params: list of parameters to optimize (must be 2D+).
-        lr: learning rate.
-        weight_decay: should be 0 (u/w-floor replaces wd's role here).
-        mu: momentum decay.
-        pp_iterations / pp_beta: Aurora diagonal-preconditioning hyperparameters.
-    """
-    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95,
-                 pp_iterations=2, pp_beta=0.5):
-        assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
-        assert pp_iterations >= 1
-        assert 0.0 < pp_beta <= 1.0
-        params = sorted(params, key=lambda x: x.size(), reverse=True)
-        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu,
-                        pp_iterations=pp_iterations, pp_beta=pp_beta)
+    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95, refresh_interval=64):
+        assert isinstance(params, list) and len(params) >= 1
+        if isinstance(params[0], torch.nn.Parameter):
+            params = sorted(params, key=lambda x: x.size(), reverse=True)
+        else:
+            assert isinstance(params[0], dict)
+            params = [dict(group, params=sorted(list(group["params"]), key=lambda x: x.size(), reverse=True))
+                      for group in params]
+        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu)
         super().__init__(params, defaults)
+        self.global_step = 0
+        self._precond_attached = self._precond_has_inv = False
+        self._precond_stats = []
+        self._precond_K = self._precond_count = None
+        self._precond_cov = None
+        self._precond_matrix_stat_idx = None
+        self._precond_matrix_count = self._precond_matrix_count_clamped = None
+        self._precond_alpha = None
+        self.refresh_interval = refresh_interval
+
+    @staticmethod
+    def _eye_(x, value):
+        x.zero_()
+        x.diagonal(dim1=-2, dim2=-1).fill_(value)
+
+    @torch.no_grad()
+    def attach_preconditioner(self):
+        self._precond_attached = True
+        stats = {}
+        for group in self.param_groups:
+            for p in group["params"]:
+                ref = getattr(p, "_stats_ref", None)
+                assert ref is not None, f"Missing preconditioner stats for parameter {tuple(p.shape)}"
+                key = id(ref["accum"])
+                if key not in stats:
+                    stats[key] = dict(accum=ref["accum"], count=ref["count"])
+                self.state[p]["precond"] = stats[key]
+        self._precond_stats = list(stats.values())
+        d = self._precond_stats[0]["accum"].size(-1)
+        n_by_stat = [s["accum"].numel() // (d * d) for s in self._precond_stats]
+        n = sum(n_by_stat)
+        device = self._precond_stats[0]["accum"].device
+        self._precond_K = torch.empty(n, d, d, device=device)
+        self._precond_cov = torch.empty_like(self._precond_K)
+        self._precond_count = torch.empty(len(self._precond_stats), device=device)
+        self._precond_matrix_count = torch.empty(n, device=device)
+        self._precond_matrix_count_clamped = torch.empty(n, device=device)
+        self._precond_matrix_stat_idx = torch.repeat_interleave(
+            torch.arange(len(self._precond_stats), device=device),
+            torch.tensor(n_by_stat, device=device),
+        )
+        self._precond_alpha = torch.empty(n, 1, 1, device=device)
+        i = 0
+        for s, stat_n in zip(self._precond_stats, n_by_stat):
+            s["n"] = stat_n
+            s["cov"] = self._precond_cov[i:i+stat_n].reshape_as(s["accum"])
+            s["inv"] = self._precond_K[i:i+stat_n].reshape_as(s["accum"])
+            self._eye_(s["cov"], 0.001)
+            self._eye_(s["inv"], 1.0)
+            s["accum"].zero_()
+            s["count"].zero_()
+            i += stat_n
+
+    def precond_flag_for_step(self, step: int):
+        return self._precond_attached and (int(step) + 1) % self.refresh_interval == 0
+
+    @torch.no_grad()
+    def _refresh_preconditioner(self):
+        K, d, i = self._precond_K, self._precond_K.size(-1), 0
+        for j, s in enumerate(self._precond_stats):
+            n = s["n"]
+            K[i:i+n].copy_(s["accum"].reshape(n, d, d))
+            self._precond_count[j].copy_(s["count"])
+            i += n
+        dist.all_reduce(K, op=dist.ReduceOp.SUM)
+        dist.all_reduce(self._precond_count, op=dist.ReduceOp.SUM)
+
+        torch.index_select(self._precond_count, 0, self._precond_matrix_stat_idx, out=self._precond_matrix_count)
+        self._precond_matrix_count_clamped.copy_(self._precond_matrix_count).clamp_min_(1)
+        K.div_(self._precond_matrix_count_clamped.view(-1, 1, 1))
+        self._precond_alpha.copy_(self._precond_matrix_count.gt(0).view(-1, 1, 1)).mul_(0.05)
+        self._precond_cov.lerp_(K, self._precond_alpha)
+
+        diag = self._precond_cov.diagonal(dim1=-2, dim2=-1)
+        reg = (diag.sum(-1) / d * 0.2 + 1e-8).unsqueeze(-1)
+        diag.add_(reg)
+        L, info = torch.linalg.cholesky_ex(self._precond_cov, upper=False, check_errors=False)
+        diag.sub_(reg)
+        torch.cholesky_inverse(L, upper=False, out=K)
+        if info.any():
+            self._eye_(K[info != 0], 1.0)
+
+        for s in self._precond_stats:
+            s["accum"].zero_()
+            s["count"].zero_()
+        self._precond_has_inv = True
+
+    @torch.no_grad()
+    def _precondition_grads(self):
+        if not self._precond_has_inv:
+            return
+        for group in self.param_groups:
+            for p in group["params"]:
+                if p.grad is None:
+                    continue
+                grad = p.grad.float()
+                if grad is not p.grad:
+                    p.grad = grad
+                inv = self.state[p]["precond"]["inv"]
+                if inv.ndim == 3:
+                    d = inv.size(-1)
+                    g = grad.view(grad.size(0), 4, d).permute(1, 0, 2)
+                    p.grad.copy_(torch.bmm(g, inv).permute(1, 0, 2).reshape_as(p.grad))
+                else:
+                    p.grad.copy_(grad @ inv)
 
     @torch.no_grad()
     def step(self):
+        if self._precond_attached and self.precond_flag_for_step(self.global_step):
+            self._refresh_preconditioner()
+        if self._precond_attached:
+            self._precondition_grads()
+
         world_size = dist.get_world_size()
         rank = dist.get_rank()
         for group in self.param_groups:
@@ -275,20 +366,13 @@ class Muon(torch.optim.Optimizer):
                 if base_i + rank < len(params):
                     p = params[base_i + rank]
                     state = self.state[p]
-                    if len(state) == 0:
+                    if "momentum" not in state:
                         state["momentum"] = torch.zeros_like(p)
-                    update = muon_update(p.grad, state["momentum"], mu=group["mu"],
-                                         pp_iterations=group["pp_iterations"],
-                                         pp_beta=group["pp_beta"])
-                    # u/w-floor: scale update so ||u||_F / ||w||_F >= TARGET_UW.
-                    p_fro = p.float().norm().clamp_min(1e-8)
-                    u_fro = update.float().norm().clamp_min(1e-8)
-                    cur_uw = u_fro / p_fro
-                    scale = torch.where(cur_uw < TARGET_UW, TARGET_UW * p_fro / u_fro, torch.ones_like(p_fro))
-                    update = update * scale.to(update.dtype)
-                    # weight_decay=0 (u/w-floor replaces decoupled weight decay).
+                    update = muon_update(p.grad, state["momentum"], mu=group["mu"])
+                    p.mul_(1 - group["lr"] * group["weight_decay"])
                     p.add_(update, alpha=-group["lr"])
                 dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
+        self.global_step += 1
 
 
 ########################################
@@ -301,7 +385,10 @@ torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
 _nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
 random.seed(_nanogpt_seed)
-np.random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
 torch.manual_seed(_nanogpt_seed)
 torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
@@ -334,12 +421,13 @@ mbs = 64
 val_inputs, val_targets = next(distributed_data_generator("../../../scratch/gilbreth/mangla/fineweb10B/fineweb_val_*.bin", val_tokens))
 
 model = GPT(vocab_size=50304, num_layers=12, model_dim=768).cuda()
+attach_precond_stats(model)
 model.compile(dynamic=False)
 
 
 num_trials = int(sys.argv[-1]) if len(sys.argv) > 1 else 1
 
-for trial in range(num_trials):
+for _ in range(num_trials):
 
 
     ########################################
@@ -347,7 +435,7 @@ for trial in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3200
+    train_steps = 3300
 
     # initialize model parameters
     for name, p in model.named_parameters():
@@ -371,9 +459,19 @@ for trial in range(num_trials):
                         dict(params=[model.proj.weight], lr=1/320),
                         dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
                        betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
-    optimizer2 = Muon([p for p in model.blocks.parameters() if p.ndim >= 2],
-                      lr=0.0375, weight_decay=0,
-                      pp_iterations=2, pp_beta=0.5)
+    named_block_params = [(n, p) for n, p in model.named_parameters()
+                          if n.startswith("blocks.") and p.ndim >= 2]
+    qkv_params = [p for n, p in named_block_params
+                  if n.endswith(".attn.q.weight") or n.endswith(".attn.k.weight") or n.endswith(".attn.v.weight")]
+    attn_out_params = [p for n, p in named_block_params if n.endswith(".attn.proj.weight")]
+    mlp_fc_params = [p for n, p in named_block_params if n.endswith(".mlp.fc.weight")]
+    mlp_proj_params = [p for n, p in named_block_params if n.endswith(".mlp.proj.weight")]
+    optimizer2 = Muon([dict(params=qkv_params, lr=0.020, weight_decay=0.025),
+                       dict(params=attn_out_params, lr=0.025, weight_decay=0.025),
+                       dict(params=mlp_fc_params, lr=0.030, weight_decay=0.0375),
+                       dict(params=mlp_proj_params, lr=0.030, weight_decay=0.025)],
+                      refresh_interval=64)
+    optimizer2.attach_preconditioner()
     optimizers = [optimizer1, optimizer2]
     assert set(p for opt in optimizers for group in opt.param_groups
                for p in group["params"]) == set(model.parameters())
@@ -385,9 +483,17 @@ for trial in range(num_trials):
     if dist.get_rank() == 0:
         wandb_run = wandb.init(
             project=os.environ.get("WANDB_PROJECT", "nanogpt-fingerprinting"),
-            name="aurora" if num_trials == 1 else f"aurora-{trial}",
+            name='20260505_newton_muon',
         )
         print0(f"wandb run:{wandb_run.url}", console=True)
+
+    fingerprint = OptimizerFingerprint.attach(
+        model,
+        optimizers,
+        run_name='20260505_newton_muon',
+        snapshot_interval=25,
+        wandb_run=wandb_run,
+    )
 
     # learning rate schedule: stable then decay
     def set_hparams(step, cooldown_frac=0.7):
@@ -400,14 +506,6 @@ for trial in range(num_trials):
         for opt in optimizers:
             for group in opt.param_groups:
                 group["lr"] = group["initial_lr"] * eta
-
-    fingerprint = OptimizerFingerprint.attach(
-        model,
-        optimizers,
-        run_name="aurora",
-        snapshot_interval=50,
-        wandb_run=wandb_run,
-    )
 
 
     ########################################
@@ -453,10 +551,14 @@ for trial in range(num_trials):
 
         # --------------- TRAINING SECTION -----------------
         inputs, targets = next(train_loader)
+        optimizer2.global_step = step
+        precond_hooks = enable_precond_hooks(model) if optimizer2.precond_flag_for_step(step) else []
         # accumulate across microbatches in case we are running with fewer than 8 gpus
         assert len(inputs) % mbs == 0
         for i in range(len(inputs) // mbs):
             model(inputs[i*mbs:(i+1)*mbs], targets[i*mbs:(i+1)*mbs]).backward()
+        for h in precond_hooks:
+            h.remove()
         for name, p in model.named_parameters():
             assert p.grad is not None, name
             dist.all_reduce(p.grad, op=dist.ReduceOp.SUM)
@@ -472,6 +574,7 @@ for trial in range(num_trials):
     fingerprint_path = fingerprint.finish()
     if fingerprint_path is not None:
         print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
     if wandb_run is not None:
         wandb_run.finish()
 

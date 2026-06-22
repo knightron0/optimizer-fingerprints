@@ -105,7 +105,7 @@ def _metrics(name, theta, gradient, update, history):
 class OptimizerFingerprint:
     """Sample ``parameter_after - parameter_before`` around optimizer steps."""
 
-    def __init__(self, model, optimizers, run_name, snapshot_interval, output_dir):
+    def __init__(self, model, optimizers, run_name, snapshot_interval, output_dir, wandb_run=None):
         if not optimizers:
             raise ValueError("At least one optimizer is required")
         if snapshot_interval < 1:
@@ -125,6 +125,7 @@ class OptimizerFingerprint:
         self.snapshots = []
         self.handles = []
         self.path = None
+        self.wandb_run = wandb_run
         self.refs = self._parameter_refs()
         self.rank0 = not dist.is_initialized() or dist.get_rank() == 0
 
@@ -149,11 +150,12 @@ class OptimizerFingerprint:
         *,
         run_name,
         snapshot_interval=25,
-        output_dir="nanogpt/traces",
+        output_dir="/scratch/gilbreth/mangla/nanogpt/traces",
+        wandb_run=None,
     ):
         if isinstance(optimizers, torch.optim.Optimizer):
             optimizers = [optimizers]
-        return cls(model, list(optimizers), run_name, snapshot_interval, output_dir)
+        return cls(model, list(optimizers), run_name, snapshot_interval, output_dir, wandb_run)
 
     def _parameter_refs(self):
         names = {id(p): name for name, p in self.model.named_parameters() if p.requires_grad}
@@ -234,18 +236,31 @@ class OptimizerFingerprint:
             self.step += 1
             if self.sample:
                 self.current_parameters.sort(key=lambda item: item["name"])
-                self.snapshots.append(
-                    {
-                        "step": self.step,
-                        "learning_rates": [
-                            [float(group["lr"]) for group in optimizer.param_groups]
-                            for optimizer in self.optimizers
-                        ],
-                        "parameters": self.current_parameters,
-                    }
-                )
+                snapshot = {
+                    "step": self.step,
+                    "learning_rates": [
+                        [float(group["lr"]) for group in optimizer.param_groups]
+                        for optimizer in self.optimizers
+                    ],
+                    "parameters": self.current_parameters,
+                }
+                self.snapshots.append(snapshot)
+                self._log_wandb(snapshot)
             self.expected_optimizer = 0
             self.sample = False
+
+    def _log_wandb(self, snapshot):
+        if self.wandb_run is None:
+            return
+        metrics = {}
+        for parameter in snapshot["parameters"]:
+            parameter_name = parameter["name"].replace(".", "/")
+            for metric_name in METRIC_NAMES:
+                value = parameter["metrics"][metric_name]
+                if value is not None:
+                    metrics[f"{metric_name}/{parameter_name}"] = value
+        self.wandb_run.log(metrics, step=snapshot["step"], commit=True)
+        print(f"wandb logged {len(metrics)} metrics at step {snapshot['step']}", flush=True)
 
     def finish(self):
         if not self.rank0:

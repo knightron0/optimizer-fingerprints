@@ -1,15 +1,8 @@
 """
-train_gpt_simple_muonh.py
+train_gpt_simple.py
 
 This file descends from the [NanoGPT speedrun](https://github.com/KellerJordan/modded-nanogpt).
 It was prepared as a simplified version of the speedrun for use in neural net optimization research.
-
-Differs from `train_gpt_simple.py` only in the init and the optimizer: the matrix-parameter
-Muon update is replaced by MuonH (the same Newton-Schulz orthogonalised direction, applied
-via a hyperball projection that preserves the Frobenius norm of every hidden 2D weight
-matrix at every step), and the residual-side projections / mlp.fc are initialised with
-per-module multipliers on the default Kaiming init so MuonH has non-zero matrices to operate
-on from step 0.
 """
 
 import os
@@ -18,13 +11,20 @@ with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
 import uuid
 import time
+import random
 from pathlib import Path
+
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from nanogpt.wrapper import OptimizerFingerprint
 
 import torch
 from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
+
+import wandb
 
 
 ########################################
@@ -194,25 +194,11 @@ def muon_update(grad, momentum, mu=0.95, nesterov=True):
     update *= max(1, grad.size(-2) / grad.size(-1))**0.5
     return update
 
-def scale_invariant_update_(param: Tensor, update: Tensor, lr: float, eps: float = 1e-10) -> None:
-    """Hyperball-constrained step: take a Muon-orthogonalised update of size lr * ||param||,
-    then renormalise back onto the Frobenius sphere of the parameter's initial radius. Preserves
-    ||param|| exactly across training; the invariant lets us drop weight decay on hidden
-    matrices entirely (the constraint already prevents norm growth)."""
-    p_norm = param.norm()
-    u_norm = update.norm()
-    new_param = param - lr * update * p_norm / torch.clamp(u_norm, min=eps)
-    new_norm = torch.clamp(new_param.norm(), min=eps)
-    param.copy_(new_param / new_norm * p_norm)
-
-class MuonH(torch.optim.Optimizer):
-    """MuonH: same Newton-Schulz orthogonalised direction as Muon, applied via a Frobenius-
-    norm-preserving hyperball projection. Used here for ALL hidden 2D weight matrices —
-    q, k, v, mlp.fc, attn.proj, mlp.proj — under non-zero (Kaiming-derived) init."""
-    def __init__(self, params, lr=0.014, mu=0.95):
+class Muon(torch.optim.Optimizer):
+    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95):
         assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
         params = sorted(params, key=lambda x: x.size(), reverse=True)
-        defaults = dict(lr=lr, mu=mu)
+        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu)
         super().__init__(params, defaults)
 
     @torch.no_grad()
@@ -229,7 +215,8 @@ class MuonH(torch.optim.Optimizer):
                     if len(state) == 0:
                         state["momentum"] = torch.zeros_like(p)
                     update = muon_update(p.grad, state["momentum"], mu=group["mu"])
-                    scale_invariant_update_(p, update, group["lr"])
+                    p.mul_(1 - group["lr"] * group["weight_decay"])
+                    p.add_(update, alpha=-group["lr"])
                 dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
 
 
@@ -241,6 +228,14 @@ class MuonH(torch.optim.Optimizer):
 device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
 torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
+_nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
+random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
+torch.manual_seed(_nanogpt_seed)
+torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
 # this code can be run equivalently with 1, 2, 4, or 8 gpus.
 assert 8 % dist.get_world_size() == 0
@@ -268,7 +263,7 @@ print0("="*100)
 val_tokens = 20 * 524288
 batch_size = 8 * 64 * 1024
 mbs = 64
-val_inputs, val_targets = next(distributed_data_generator("data/fineweb10B/fineweb_val_*.bin", val_tokens))
+val_inputs, val_targets = next(distributed_data_generator("../../../scratch/gilbreth/mangla/fineweb10B/fineweb_val_*.bin", val_tokens))
 
 model = GPT(vocab_size=50304, num_layers=12, model_dim=768).cuda()
 model.compile(dynamic=False)
@@ -284,19 +279,15 @@ for _ in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3325
+    train_steps = 3250
 
-    # initialize model parameters. Per-module multipliers on the default nn.Linear Kaiming-uniform
-    # init (std = 1/sqrt(3*fan_in), so ~0.0208 for fan_in=768 and ~0.0104 for fan_in=3072):
-    #   - attn.proj.weight (fan_in=768):  default × 1.25 → std ≈ 0.026
-    #   - mlp.proj.weight  (fan_in=3072): default × 3.0  → std ≈ 0.031
-    #   - mlp.fc.weight    (fan_in=768):  default × 1.5  → std ≈ 0.031
-    # qkv weights keep their default init. The vocab head (proj.weight) and all "proj" biases are
-    # zeroed so initial logits are 0.
+    # initialize model parameters
     for name, p in model.named_parameters():
         w = p.data
         if name.endswith("weight"):
-            if "embed" in name:
+            if "proj" in name:
+                w.zero_()
+            elif "embed" in name:
                 w.normal_()  # default torch init
             else:
                 w.normal_(std=0.33**0.5 / w.size(-1)**0.5)  # default torch init
@@ -306,42 +297,47 @@ for _ in range(num_trials):
             w.normal_(mean=1, std=0)
         else:
             raise Exception(f"Uninitialized parameter: {name}")
-        if name.endswith(".attn.proj.weight"):
-            w.mul_(1.25)
-        elif name.endswith(".mlp.proj.weight"):
-            w.mul_(3.0)
-        elif name.endswith(".mlp.fc.weight"):
-            w.mul_(1.5)
 
     # create the optimizer(s)
-    optimizer1 = AdamW([dict(params=[model.embed.weight], lr=0.3),
-                        dict(params=[model.proj.weight], lr=1/320),
-                        dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
-                       betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
-    optimizer2 = MuonH([p for p in model.blocks.parameters() if p.ndim == 2], lr=0.018)
+    optimizer1 = AdamW([dict(params=[model.embed.weight], lr=0.7),
+                        dict(params=[model.proj.weight], lr=0.004),
+                        dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.015)],
+                       betas=(0.8, 0.95), eps=1e-10, weight_decay=0.001, fused=True)
+    optimizer2 = Muon([p for p in model.blocks.parameters() if p.ndim >= 2],
+                      lr=0.025, weight_decay=0.05)
     optimizers = [optimizer1, optimizer2]
     assert set(p for opt in optimizers for group in opt.param_groups
                for p in group["params"]) == set(model.parameters())
     for opt in optimizers:
         for group in opt.param_groups:
             group["initial_lr"] = group["lr"]
-    for group in optimizer1.param_groups:
-        group["cooldown_frac"] = 0.4
-    for group in optimizer2.param_groups:
-        group["cooldown_frac"] = 1.0
 
-    # learning rate schedule: stable then decay. The h (MuonH) groups use full linear cooldown
-    # over the entire run (cooldown_frac=1.0); the aux (AdamW) group uses a shorter cooldown
-    # (cooldown_frac=0.4) to keep the embed/head learning longer before tapering.
-    def set_hparams(step):
+    wandb_run = None
+    if dist.get_rank() == 0:
+        wandb_run = wandb.init(
+            project=os.environ.get("WANDB_PROJECT", "nanogpt-fingerprinting"),
+            name='20260610_tuned_baseline_3250',
+        )
+        print0(f"wandb run:{wandb_run.url}", console=True)
+
+    fingerprint = OptimizerFingerprint.attach(
+        model,
+        optimizers,
+        run_name='20260610_tuned_baseline_3250',
+        snapshot_interval=25,
+        wandb_run=wandb_run,
+    )
+
+    # learning rate schedule: stable then decay
+    def set_hparams(step, cooldown_frac=0.7):
         progress = step / train_steps
         assert 0 <= progress < 1
+        if progress < 1 - cooldown_frac:
+            eta = 1.0
+        else:
+            eta = (1 - progress) / cooldown_frac
         for opt in optimizers:
             for group in opt.param_groups:
-                if progress < 1 - group["cooldown_frac"]:
-                    eta = 1.0
-                else:
-                    eta = (1 - progress) / group["cooldown_frac"]
                 group["lr"] = group["initial_lr"] * eta
 
 
@@ -349,7 +345,7 @@ for _ in range(num_trials):
     #        Training and Validation       #
     ########################################
 
-    train_loader = distributed_data_generator("data/fineweb10B/fineweb_train_*.bin", batch_size)
+    train_loader = distributed_data_generator("../../../scratch/gilbreth/mangla/fineweb10B/fineweb_train_*.bin", batch_size)
     for p in model.parameters():
         dist.broadcast(p.detach(), 0)
     # start the clock
@@ -360,7 +356,8 @@ for _ in range(num_trials):
     for step in range(train_steps + 1):
 
         # --------------- VALIDATION SECTION -----------------
-        if step == train_steps or step % 125 == 0:
+        val_step_freq = 125 if step / train_steps < 0.9 else 25
+        if step == train_steps or step % val_step_freq == 0:
             # stop the clock
             dist.barrier()
             time_since_last_val = time.perf_counter() - t0
@@ -402,5 +399,12 @@ for _ in range(num_trials):
         approx_training_time = training_time + (time.perf_counter() - t0)
         print0(f"step:{step+1}/{train_steps} train_time:{approx_training_time:.3f}s"
                + f" step_avg:{1000*approx_training_time/(step + 1):.2f}ms", console=True, log=False)
+
+    fingerprint_path = fingerprint.finish()
+    if fingerprint_path is not None:
+        print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
+    if wandb_run is not None:
+        wandb_run.finish()
 
 dist.destroy_process_group()

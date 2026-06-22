@@ -9,12 +9,12 @@ import os
 import sys
 with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
-import random
 import uuid
 import time
+import random
 from pathlib import Path
 
-# Keep this example directly runnable via `torchrun nanogpt/examples/aurora.py`.
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from nanogpt.wrapper import OptimizerFingerprint
 
@@ -23,9 +23,9 @@ from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
-import numpy as np
 
 import wandb
+
 
 ########################################
 #              Dataloader              #
@@ -167,101 +167,123 @@ class GPT(nn.Module):
 #              Optimizer               #
 ########################################
 
-# Hyperparameters for Contra-Muon and u/w-floor (locked for this submission).
-CONTRA_MUON = 0.4   # Contra-Muon perturbation strength (subtract 0.2 * normalized_grad).
-TARGET_UW = 0.35    # u/w-floor target ratio: ||u||_F / ||w||_F >= this.
+@torch.no_grad()
+def scale_invariant_update_(param: Tensor, update: Tensor, lr: float, eps: float = 1e-10):
+    p_norm = param.norm()
+    u_norm = update.norm()
+    new_param = param - lr * update * p_norm / torch.clamp(u_norm, min=eps)
+    param.copy_(new_param / torch.clamp(new_param.norm(), min=eps) * p_norm)
 
-def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
-    assert G.ndim >= 2
-    X = G.bfloat16()
-    if G.size(-2) > G.size(-1):
-        X = X.mT
 
-    # Ensure spectral norm is at most 1
-    X = X / (X.norm(dim=(-2, -1), keepdim=True) + 1e-7)
-    # Perform the NS iterations, not optimizing for wallclock speed
-    a, b, c = 2, -1.5, 0.5
-    for _ in range(12):
-        A = X @ X.mT
-        B = b * A + c * A @ A
-        X = a * X + B @ X
+def _symmetrize(matrix: Tensor) -> Tensor:
+    return 0.5 * (matrix + matrix.T)
 
-    if G.size(-2) > G.size(-1):
-        X = X.mT
-    return X
 
-def aurora_orthogonalize(G: Tensor, pp_iterations: int = 2, pp_beta: float = 0.5,
-                        eps: float = 1e-7) -> Tensor:
-    """Aurora: leverage-uniform polar via diagonal preconditioning.
+def _initial_orthogonal_matrix(matrix: Tensor) -> Tensor:
+    matrix = _symmetrize(matrix.float())
+    eye = torch.eye(matrix.shape[0], device=matrix.device, dtype=torch.float32)
+    try:
+        _, q = torch.linalg.eigh(matrix + 1e-30 * eye)
+    except RuntimeError:
+        _, q = torch.linalg.eigh((matrix + 1e-30 * eye).double())
+        q = q.float()
+    return torch.flip(q, dims=[1]).contiguous()
 
-    Reference: tilde-research/aurora-release.
 
-    For tall G [m, n] with m > n, returns polar(D * G) where the positive diagonal
-    D is chosen so the result's row norms are uniformly sqrt(n / m). For wide G,
-    transpose to tall, apply, transpose back. For square G, reduces to standard polar.
-    """
-    m, n = G.size(-2), G.size(-1)
-    if m == n:
-        return zeropower_via_newtonschulz5(G)
-    transposed = m < n
-    if transposed:
-        G = G.mT
-        m, n = n, m
-    G32 = G.to(torch.float32)
-    target_row_sq = n / m
-    row_norm = G32.norm(dim=-1, keepdim=True).clamp_(min=eps)
-    D = 1.0 / row_norm
-    for k in range(pp_iterations):
-        U = zeropower_via_newtonschulz5(D * G32)
-        if k < pp_iterations - 1:
-            row_sq = U.to(torch.float32).pow(2).sum(dim=-1, keepdim=True).clamp_(min=eps * eps)
-            D = D * (target_row_sq / row_sq).pow(pp_beta)
-    return U.mT if transposed else U
+def project_to_klsoap_basis(grad: Tensor, state) -> Tensor:
+    q_left, q_right = state["Q"]
+    return q_left.T @ grad.float() @ q_right
 
-def scale_to_unit_operator_norm(G: Tensor, eps: float = 1e-10) -> Tensor:
-    """Power iteration estimate of operator-norm direction (for Contra-Muon)."""
-    X = G.float()
-    v = torch.ones(X.size(-1), dtype=X.dtype, device=X.device)
-    v = v / torch.clamp(v.norm(), min=eps)
-    for _ in range(5):
-        u = X @ v
-        u = u / torch.clamp(u.norm(), min=eps)
-        v = X.mT @ u
-        v = v / torch.clamp(v.norm(), min=eps)
-    sigma = (X @ v).norm()
-    return X / torch.clamp(sigma, min=eps)
 
-@torch.compile
-def muon_update(grad, momentum, mu=0.95, nesterov=True, pp_iterations=2, pp_beta=0.5):
-    """Aurora polar + Contra-Muon correction + spectral aspect-ratio scale."""
-    momentum.lerp_(grad, 1 - mu)
-    update = grad.lerp_(momentum, mu) if nesterov else momentum
-    normalized_grad = scale_to_unit_operator_norm(update.clone())
-    update = aurora_orthogonalize(update, pp_iterations=pp_iterations, pp_beta=pp_beta)
-    polar_fro = update.norm()
-    update = update - CONTRA_MUON / 2 * normalized_grad
-    update = update * polar_fro / torch.clamp(update.norm(), min=1e-10)
-    update *= max(1, grad.size(-2) / grad.size(-1))**0.5
-    return update
+def project_from_klsoap_basis(grad: Tensor, state) -> Tensor:
+    q_left, q_right = state["Q"]
+    return q_left @ grad.float() @ q_right.T
 
-class Muon(torch.optim.Optimizer):
-    """Aurora + Contra-Muon optimizer with u/w-floor (applied in step).
 
-    Args:
-        params: list of parameters to optimize (must be 2D+).
-        lr: learning rate.
-        weight_decay: should be 0 (u/w-floor replaces wd's role here).
-        mu: momentum decay.
-        pp_iterations / pp_beta: Aurora diagonal-preconditioning hyperparameters.
-    """
-    def __init__(self, params, lr=0.02, weight_decay=0, mu=0.95,
-                 pp_iterations=2, pp_beta=0.5):
+def init_2d_klsoap_state_(state, grad: Tensor, shampoo_beta: float, init_factor: float):
+    grad = grad.detach().float()
+    rows, cols = grad.shape
+    state["step"] = 0
+    state["GG"] = [
+        (grad @ grad.T / cols).contiguous(),
+        (grad.T @ grad / rows).contiguous(),
+    ]
+    state["Q"] = [
+        _initial_orthogonal_matrix(state["GG"][0]),
+        _initial_orthogonal_matrix(state["GG"][1]),
+    ]
+    inv = init_factor ** -0.5
+    state["eigen_sqrt_inv"] = [
+        torch.full((rows,), inv, device=grad.device, dtype=torch.float32),
+        torch.full((cols,), inv, device=grad.device, dtype=torch.float32),
+    ]
+    state["exp_avg"] = torch.zeros_like(grad, dtype=torch.float32)
+    state["exp_avg_sq"] = torch.zeros_like(grad, dtype=torch.float32)
+    state["shampoo_beta"] = shampoo_beta
+
+
+def _update_eigen_sqrt_inv_(state, diag: Tensor, idx: int, beta: float):
+    old_eigen = state["eigen_sqrt_inv"][idx].float().square().reciprocal()
+    old_eigen = old_eigen.nan_to_num(nan=0.0, posinf=0.0, neginf=0.0)
+    eigen = beta * old_eigen + (1.0 - beta) * diag.detach().float()
+    inv_sqrt = eigen.clamp_min(1e-30).rsqrt().clamp(max=4000.0)
+    state["eigen_sqrt_inv"][idx] = inv_sqrt.nan_to_num(nan=0.0, posinf=0.0, neginf=0.0).contiguous()
+
+
+@torch.no_grad()
+def update_2d_klsoap_preconditioner_(grad: Tensor, state):
+    grad = grad.detach().float()
+    q_left, q_right = state["Q"]
+    inv_left, inv_right = state["eigen_sqrt_inv"]
+    beta = state["shampoo_beta"]
+    rows, cols = grad.shape
+
+    right_whitened = (q_right.T @ grad.T) * inv_right.view(-1, 1)
+    left_target = right_whitened.T @ right_whitened / cols
+    left_whitened = (q_left.T @ grad) * inv_left.view(-1, 1)
+    right_target = left_whitened.T @ left_whitened / rows
+    state["GG"][0].mul_(beta).add_(left_target, alpha=1.0 - beta)
+    state["GG"][1].mul_(beta).add_(right_target, alpha=1.0 - beta)
+    state["GG"][0] = _symmetrize(state["GG"][0]).contiguous()
+    state["GG"][1] = _symmetrize(state["GG"][1]).contiguous()
+
+    projected = q_left.T @ grad @ q_right
+    left_diag = (projected * inv_right.view(1, -1)).square().mean(dim=1)
+    right_diag = (projected * inv_left.view(-1, 1)).square().mean(dim=0)
+    _update_eigen_sqrt_inv_(state, left_diag, 0, beta)
+    _update_eigen_sqrt_inv_(state, right_diag, 1, beta)
+
+
+@torch.no_grad()
+def refresh_klsoap_basis_(state):
+    exp_avg_original = project_from_klsoap_basis(state["exp_avg"], state)
+    refreshed = []
+    for gg, q in zip(state["GG"], state["Q"]):
+        new_q, _ = torch.linalg.qr(gg.float() @ q.float())
+        refreshed.append(new_q.contiguous())
+    state["Q"] = refreshed
+    state["exp_avg"] = project_to_klsoap_basis(exp_avg_original, state).contiguous()
+
+
+def klsoap_direction(state, grad: Tensor, beta1: float, beta2: float, eps: float) -> Tensor:
+    grad_projected = project_to_klsoap_basis(grad.detach().float(), state)
+    state["exp_avg"].mul_(beta1).add_(grad_projected, alpha=1.0 - beta1)
+    state["exp_avg_sq"].mul_(beta2).addcmul_(grad_projected, grad_projected, value=1.0 - beta2)
+    preconditioned = state["exp_avg"] / (state["exp_avg_sq"].sqrt() + eps)
+    return project_from_klsoap_basis(preconditioned, state)
+
+
+class KLSOAPH(torch.optim.Optimizer):
+    def __init__(
+        self, params, lr=0.018, beta1=0.95, beta2=0.9,
+        shampoo_beta=0.9, eps=1e-8, precondition_frequency=1,
+    ):
         assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
-        assert pp_iterations >= 1
-        assert 0.0 < pp_beta <= 1.0
         params = sorted(params, key=lambda x: x.size(), reverse=True)
-        defaults = dict(lr=lr, weight_decay=weight_decay, mu=mu,
-                        pp_iterations=pp_iterations, pp_beta=pp_beta)
+        defaults = dict(
+            lr=lr, beta1=beta1, beta2=beta2, shampoo_beta=shampoo_beta,
+            eps=eps, precondition_frequency=precondition_frequency,
+        )
         super().__init__(params, defaults)
 
     @torch.no_grad()
@@ -276,18 +298,15 @@ class Muon(torch.optim.Optimizer):
                     p = params[base_i + rank]
                     state = self.state[p]
                     if len(state) == 0:
-                        state["momentum"] = torch.zeros_like(p)
-                    update = muon_update(p.grad, state["momentum"], mu=group["mu"],
-                                         pp_iterations=group["pp_iterations"],
-                                         pp_beta=group["pp_beta"])
-                    # u/w-floor: scale update so ||u||_F / ||w||_F >= TARGET_UW.
-                    p_fro = p.float().norm().clamp_min(1e-8)
-                    u_fro = update.float().norm().clamp_min(1e-8)
-                    cur_uw = u_fro / p_fro
-                    scale = torch.where(cur_uw < TARGET_UW, TARGET_UW * p_fro / u_fro, torch.ones_like(p_fro))
-                    update = update * scale.to(update.dtype)
-                    # weight_decay=0 (u/w-floor replaces decoupled weight decay).
-                    p.add_(update, alpha=-group["lr"])
+                        init_2d_klsoap_state_(state, p.grad, group["shampoo_beta"], init_factor=0.1)
+                        dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
+                        continue
+                    state["step"] += 1
+                    update = klsoap_direction(state, p.grad, group["beta1"], group["beta2"], group["eps"])
+                    update_2d_klsoap_preconditioner_(p.grad, state)
+                    if state["step"] % group["precondition_frequency"] == 0:
+                        refresh_klsoap_basis_(state)
+                    scale_invariant_update_(p, update, group["lr"])
                 dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
 
 
@@ -301,7 +320,10 @@ torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
 _nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
 random.seed(_nanogpt_seed)
-np.random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
 torch.manual_seed(_nanogpt_seed)
 torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
@@ -328,6 +350,11 @@ print0(f"Running PyTorch {torch.version.__version__} compiled for CUDA {torch.ve
        + f" on {torch.cuda.get_device_name(device)} with world_size {dist.get_world_size()}")
 print0("="*100)
 
+train_seed = int(os.environ.get("KL_SOAP_SEED", "1"))
+# Original record seed disabled for array control: torch.manual_seed(train_seed)
+# Original record seed disabled for array control: torch.cuda.manual_seed_all(train_seed)
+print0(f"Using seed={train_seed}", console=True)
+
 val_tokens = 20 * 524288
 batch_size = 8 * 64 * 1024
 mbs = 64
@@ -337,9 +364,9 @@ model = GPT(vocab_size=50304, num_layers=12, model_dim=768).cuda()
 model.compile(dynamic=False)
 
 
-num_trials = int(sys.argv[-1]) if len(sys.argv) > 1 else 1
+num_trials = 1
 
-for trial in range(num_trials):
+for _ in range(num_trials):
 
 
     ########################################
@@ -347,34 +374,45 @@ for trial in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3200
+    train_steps = 3125
+    print0("KL-SOAP-H config: train_steps=3125 beta1=0.95 beta2=0.9 shampoo_beta=0.9 lr=0.018 precondition_frequency=1", console=True)
 
     # initialize model parameters
+    for module in model.modules():
+        if hasattr(module, "reset_parameters"):
+            module.reset_parameters()
     for name, p in model.named_parameters():
-        w = p.data
-        if name.endswith("weight"):
-            if "proj" in name:
-                w.zero_()
-            elif "embed" in name:
-                w.normal_()  # default torch init
-            else:
-                w.normal_(std=0.33**0.5 / w.size(-1)**0.5)  # default torch init
-        elif name.endswith("bias"):
-            w.zero_()
-        elif name.endswith("gains"):
-            w.normal_(mean=1, std=0)
-        else:
-            raise Exception(f"Uninitialized parameter: {name}")
+        if name.endswith("gains"):
+            p.data.fill_(1)
+        elif name.endswith(".attn.proj.weight"):
+            p.data.mul_(1.25)
+        elif name.endswith(".mlp.proj.weight"):
+            p.data.mul_(3.0)
+        elif name.endswith(".mlp.fc.weight"):
+            p.data.mul_(1.5)
+        elif name == "proj.weight":
+            p.data.zero_()
+        elif "proj" in name:
+            p.data.zero_()
 
     # create the optimizer(s)
+    named_block_params = [(n, p) for n, p in model.named_parameters()
+                          if n.startswith("blocks.") and p.ndim >= 2]
+    qkv_params = [p for n, p in named_block_params
+                  if n.endswith(".attn.q.weight") or n.endswith(".attn.k.weight") or n.endswith(".attn.v.weight")]
+    mlp_fc_params = [p for n, p in named_block_params if n.endswith(".mlp.fc.weight")]
+    attn_proj_params = [p for n, p in named_block_params if n.endswith(".attn.proj.weight")]
+    mlp_proj_params = [p for n, p in named_block_params if n.endswith(".mlp.proj.weight")]
+
     optimizer1 = AdamW([dict(params=[model.embed.weight], lr=0.3),
                         dict(params=[model.proj.weight], lr=1/320),
                         dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
                        betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
-    optimizer2 = Muon([p for p in model.blocks.parameters() if p.ndim >= 2],
-                      lr=0.0375, weight_decay=0,
-                      pp_iterations=2, pp_beta=0.5)
-    optimizers = [optimizer1, optimizer2]
+    optimizer2 = KLSOAPH(qkv_params, lr=0.018)
+    optimizer3 = KLSOAPH(mlp_fc_params, lr=0.018)
+    optimizer4 = KLSOAPH(attn_proj_params, lr=0.018)
+    optimizer5 = KLSOAPH(mlp_proj_params, lr=0.018)
+    optimizers = [optimizer1, optimizer2, optimizer3, optimizer4, optimizer5]
     assert set(p for opt in optimizers for group in opt.param_groups
                for p in group["params"]) == set(model.parameters())
     for opt in optimizers:
@@ -385,29 +423,36 @@ for trial in range(num_trials):
     if dist.get_rank() == 0:
         wandb_run = wandb.init(
             project=os.environ.get("WANDB_PROJECT", "nanogpt-fingerprinting"),
-            name="aurora" if num_trials == 1 else f"aurora-{trial}",
+            name='20260508_klsoap_h_clean_tuple_sweep',
         )
         print0(f"wandb run:{wandb_run.url}", console=True)
-
-    # learning rate schedule: stable then decay
-    def set_hparams(step, cooldown_frac=0.7):
-        progress = step / train_steps
-        assert 0 <= progress < 1
-        if progress < 1 - cooldown_frac:
-            eta = 1.0
-        else:
-            eta = (1 - progress) / cooldown_frac
-        for opt in optimizers:
-            for group in opt.param_groups:
-                group["lr"] = group["initial_lr"] * eta
 
     fingerprint = OptimizerFingerprint.attach(
         model,
         optimizers,
-        run_name="aurora",
-        snapshot_interval=50,
+        run_name='20260508_klsoap_h_clean_tuple_sweep',
+        snapshot_interval=25,
         wandb_run=wandb_run,
     )
+
+    # learning rate schedule: stable then decay
+    for opt in (optimizer2, optimizer3, optimizer4, optimizer5):
+        for group in opt.param_groups:
+            group["cooldown_frac"] = 1.0
+    for group in optimizer1.param_groups:
+        group["cooldown_frac"] = 0.4
+
+    def set_hparams(step):
+        progress = step / train_steps
+        assert 0 <= progress < 1
+        for opt in optimizers:
+            for group in opt.param_groups:
+                cooldown_frac = group["cooldown_frac"]
+                if progress < 1 - cooldown_frac:
+                    eta = 1.0
+                else:
+                    eta = (1 - progress) / cooldown_frac
+                group["lr"] = group["initial_lr"] * eta
 
 
     ########################################
@@ -472,6 +517,7 @@ for trial in range(num_trials):
     fingerprint_path = fingerprint.finish()
     if fingerprint_path is not None:
         print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
     if wandb_run is not None:
         wandb_run.finish()
 

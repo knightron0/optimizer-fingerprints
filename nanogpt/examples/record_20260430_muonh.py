@@ -1,8 +1,15 @@
 """
-train_gpt_simple.py
+train_gpt_simple_muonh.py
 
 This file descends from the [NanoGPT speedrun](https://github.com/KellerJordan/modded-nanogpt).
 It was prepared as a simplified version of the speedrun for use in neural net optimization research.
+
+Differs from `train_gpt_simple.py` only in the init and the optimizer: the matrix-parameter
+Muon update is replaced by MuonH (the same Newton-Schulz orthogonalised direction, applied
+via a hyperball projection that preserves the Frobenius norm of every hidden 2D weight
+matrix at every step), and the residual-side projections / mlp.fc are initialised with
+per-module multipliers on the default Kaiming init so MuonH has non-zero matrices to operate
+on from step 0.
 """
 
 import os
@@ -11,13 +18,20 @@ with open(sys.argv[0]) as f:
     code = f.read() # read the code of this file ASAP, for logging
 import uuid
 import time
+import random
 from pathlib import Path
+
+# Keep imported records directly runnable via `torchrun nanogpt/examples/...`.
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from nanogpt.wrapper import OptimizerFingerprint
 
 import torch
 from torch import Tensor, nn
 from torch.optim import AdamW
 import torch.nn.functional as F
 import torch.distributed as dist
+
+import wandb
 
 
 ########################################
@@ -160,239 +174,70 @@ class GPT(nn.Module):
 #              Optimizer               #
 ########################################
 
-@torch.no_grad()
-def scale_invariant_update_(param: Tensor, update: Tensor, lr: float, eps: float = 1e-10):
+def zeropower_via_newtonschulz5(G: Tensor) -> Tensor:
+    assert G.ndim >= 2
+    X = G.bfloat16()
+    if G.size(-2) > G.size(-1):
+        X = X.mT
+
+    # Ensure spectral norm is at most 1
+    X = X / (X.norm(dim=(-2, -1), keepdim=True) + 1e-7)
+    # Perform the NS iterations, not optimizing for wallclock speed
+    a, b, c = 2, -1.5, 0.5
+    for _ in range(12):
+        A = X @ X.mT
+        B = b * A + c * A @ A
+        X = a * X + B @ X
+
+    if G.size(-2) > G.size(-1):
+        X = X.mT
+    return X
+
+@torch.compile
+def muon_update(grad, momentum, mu=0.95, nesterov=True):
+    momentum.lerp_(grad, 1 - mu)
+    update = grad.lerp_(momentum, mu) if nesterov else momentum
+    update = zeropower_via_newtonschulz5(update)
+    update *= max(1, grad.size(-2) / grad.size(-1))**0.5
+    return update
+
+def scale_invariant_update_(param: Tensor, update: Tensor, lr: float, eps: float = 1e-10) -> None:
+    """Hyperball-constrained step: take a Muon-orthogonalised update of size lr * ||param||,
+    then renormalise back onto the Frobenius sphere of the parameter's initial radius. Preserves
+    ||param|| exactly across training; the invariant lets us drop weight decay on hidden
+    matrices entirely (the constraint already prevents norm growth)."""
     p_norm = param.norm()
     u_norm = update.norm()
     new_param = param - lr * update * p_norm / torch.clamp(u_norm, min=eps)
-    param.copy_(new_param / torch.clamp(new_param.norm(), min=eps) * p_norm)
+    new_norm = torch.clamp(new_param.norm(), min=eps)
+    param.copy_(new_param / new_norm * p_norm)
 
-
-def _symmetrize(matrix: Tensor) -> Tensor:
-    return 0.5 * (matrix + matrix.T)
-
-
-def _initial_orthogonal_matrix(matrix: Tensor) -> Tensor:
-    matrix = _symmetrize(matrix.float())
-    eye = torch.eye(matrix.shape[0], device=matrix.device, dtype=torch.float32)
-    try:
-        _, q = torch.linalg.eigh(matrix + 1e-30 * eye)
-    except RuntimeError:
-        _, q = torch.linalg.eigh((matrix + 1e-30 * eye).double())
-        q = q.float()
-    return torch.flip(q, dims=[1]).contiguous()
-
-
-@torch.compile
-def soap_update(
-    grad: Tensor,
-    momentum_buffer: Tensor,
-    square_buffer: Tensor,
-    left_buffer: Tensor,
-    right_buffer: Tensor,
-    Q_left: Tensor,
-    Q_right: Tensor,
-    momentum: float,
-    ema_beta: float,
-    eps: float,
-) -> Tensor:
-    # Momentum EMA:
-    momentum_buffer.lerp_(grad, 1.0 - momentum)
-
-    M = momentum_buffer
-
-    # Matrix second moments:
-    left_buffer.mul_(ema_beta).addmm_(
-        grad,
-        grad.T,
-        beta=1.0,
-        alpha=1.0 - ema_beta,
-    )
-
-    right_buffer.mul_(ema_beta).addmm_(
-        grad.T,
-        grad,
-        beta=1.0,
-        alpha=1.0 - ema_beta,
-    )
-
-    # Project into current SOAP basis.
-    M_eigen = Q_left.T @ M @ Q_right
-    G_eigen = Q_left.T @ grad @ Q_right
-
-    # Diagonal second moment in SOAP basis.
-    square_buffer.mul_(ema_beta).addcmul_(
-        G_eigen,
-        G_eigen,
-        value=1.0 - ema_beta,
-    )
-
-    # Precondition in SOAP basis and rotate back.
-    U_eigen = M_eigen / square_buffer.sqrt().add(eps)
-    U = Q_left @ U_eigen @ Q_right.T
-
-    return U
-
-
-class SOAPH(torch.optim.Optimizer):
-    def __init__(
-        self,
-        params,
-        lr: float = 1e-2,
-        ema_beta: float = 0.9,
-        momentum: float = 0.95,
-        q_freq: int = 1,
-        eps: float = 1e-8,
-        hyperball_eps: float = 1e-10,
-    ):
-        assert isinstance(params, list)
-        assert len(params) >= 1
-        assert isinstance(params[0], torch.nn.Parameter)
-
-        for p in params:
-            assert p.ndim == 2, f"SOAPH here expects only 2D parameters, got shape {tuple(p.shape)}"
-
-        params = sorted(params, key=lambda x: x.numel(), reverse=True)
-
-        defaults = dict(
-            lr=lr,
-            ema_beta=ema_beta,
-            momentum=momentum,
-            q_freq=q_freq,
-            eps=eps,
-            hyperball_eps=hyperball_eps,
-        )
-
-        print("SOAPH hyperparams:", defaults)
-
+class MuonH(torch.optim.Optimizer):
+    """MuonH: same Newton-Schulz orthogonalised direction as Muon, applied via a Frobenius-
+    norm-preserving hyperball projection. Used here for ALL hidden 2D weight matrices —
+    q, k, v, mlp.fc, attn.proj, mlp.proj — under non-zero (Kaiming-derived) init."""
+    def __init__(self, params, lr=0.014, mu=0.95):
+        assert isinstance(params, list) and len(params) >= 1 and isinstance(params[0], torch.nn.Parameter)
+        params = sorted(params, key=lambda x: x.size(), reverse=True)
+        defaults = dict(lr=lr, mu=mu)
         super().__init__(params, defaults)
 
     @torch.no_grad()
-    def _init_state(self, p: Tensor, state: dict) -> None:
-        m, n = p.shape
-
-        state["step"] = 0
-
-        state["momentum_buffer"] = torch.zeros_like(p)
-        state["square_buffer"] = torch.zeros_like(p)
-
-        state["left_buffer"] = torch.zeros(
-            (m, m),
-            dtype=p.dtype,
-            device=p.device,
-        )
-
-        state["right_buffer"] = torch.zeros(
-            (n, n),
-            dtype=p.dtype,
-            device=p.device,
-        )
-
-        state['Q_left'] = _initial_orthogonal_matrix(p.grad @ p.grad.T)
-        state["Q_right"] = _initial_orthogonal_matrix(p.grad.T @ p.grad)
-
-    @torch.no_grad()
-    def _refresh_q(self, state: dict) -> None:
-        L = state["left_buffer"]
-        R = state["right_buffer"]
-
-        Q_left_old = state["Q_left"]
-        Q_right_old = state["Q_right"]
-
-        Q_left, _ = torch.linalg.qr(
-            L.float() @ Q_left_old.float(),
-            mode="reduced",
-        )
-
-        Q_right, _ = torch.linalg.qr(
-            R.float() @ Q_right_old.float(),
-            mode="reduced",
-        )
-
-        state["Q_left"].copy_(Q_left.to(dtype=Q_left_old.dtype))
-        state["Q_right"].copy_(Q_right.to(dtype=Q_right_old.dtype))
-
-    @torch.no_grad()
-    def _step_param(self, p: Tensor, group: dict) -> None:
-        if p.grad is None:
-            return
-
-        if p.grad.is_sparse:
-            raise RuntimeError("SOAPH does not support sparse gradients")
-
-        if p.ndim != 2:
-            raise RuntimeError(f"SOAPH expects only 2D parameters, got shape {tuple(p.shape)}")
-
-        grad = p.grad
-        state = self.state[p]
-
-        if len(state) == 0:
-            self._init_state(p, state)
-
-        lr = group["lr"]
-        ema_beta = group["ema_beta"]
-        momentum = group["momentum"]
-        q_freq = group["q_freq"]
-        eps = group["eps"]
-        hyperball_eps = group["hyperball_eps"]
-
-        state["step"] += 1
-        step = state["step"]
-
-        update = soap_update(
-            grad=grad,
-            momentum_buffer=state["momentum_buffer"],
-            square_buffer=state["square_buffer"],
-            left_buffer=state["left_buffer"],
-            right_buffer=state["right_buffer"],
-            Q_left=state["Q_left"],
-            Q_right=state["Q_right"],
-            momentum=momentum,
-            ema_beta=ema_beta,
-            eps=eps,
-        )
-
-        if step % q_freq == 0:
-            self._refresh_q(state)
-
-        scale_invariant_update_(
-            param=p,
-            update=update,
-            lr=lr,
-            eps=hyperball_eps,
-        )
-
-    @torch.no_grad()
-    def step(self, closure=None):
-        loss = None
-
-        if closure is not None:
-            with torch.enable_grad():
-                loss = closure()
-
-        distributed = dist.is_available() and dist.is_initialized()
-
-        if distributed:
-            world_size = dist.get_world_size()
-            rank = dist.get_rank()
-        else:
-            world_size = 1
-            rank = 0
-
+    def step(self):
+        world_size = dist.get_world_size()
+        rank = dist.get_rank()
         for group in self.param_groups:
             params = group["params"]
-
-            for i, p in enumerate(params):
-                owner = i % world_size
-
-                if rank == owner:
-                    self._step_param(p, group)
-
-                if distributed:
-                    dist.broadcast(p, src=owner)
-
-        return loss
-
+            params_pad = params + [torch.empty_like(params[-1])] * (world_size - len(params) % world_size)
+            for base_i in range(0, len(params), world_size):
+                if base_i + rank < len(params):
+                    p = params[base_i + rank]
+                    state = self.state[p]
+                    if len(state) == 0:
+                        state["momentum"] = torch.zeros_like(p)
+                    update = muon_update(p.grad, state["momentum"], mu=group["mu"])
+                    scale_invariant_update_(p, update, group["lr"])
+                dist.all_gather(params_pad[base_i:base_i + world_size], params_pad[base_i + rank])
 
 
 ########################################
@@ -403,6 +248,14 @@ class SOAPH(torch.optim.Optimizer):
 device = torch.device("cuda", int(os.environ["LOCAL_RANK"]))
 torch.cuda.set_device(device)
 dist.init_process_group(backend="nccl", device_id=device)
+_nanogpt_seed = int(os.environ.get("NANOGPT_SEED", "0"))
+random.seed(_nanogpt_seed)
+try:
+    np.random.seed(_nanogpt_seed)
+except NameError:
+    pass
+torch.manual_seed(_nanogpt_seed)
+torch.cuda.manual_seed_all(_nanogpt_seed)
 dist.barrier()
 # this code can be run equivalently with 1, 2, 4, or 8 gpus.
 assert 8 % dist.get_world_size() == 0
@@ -427,23 +280,16 @@ print0(f"Running PyTorch {torch.version.__version__} compiled for CUDA {torch.ve
        + f" on {torch.cuda.get_device_name(device)} with world_size {dist.get_world_size()}")
 print0("="*100)
 
-train_seed = int(os.environ.get("SOAP_SEED", "1"))
-torch.manual_seed(train_seed)
-torch.cuda.manual_seed_all(train_seed)
-print0(f"Using seed={train_seed}", console=True)
-
 val_tokens = 20 * 524288
 batch_size = 8 * 64 * 1024
 mbs = 64
-val_inputs, val_targets = next(distributed_data_generator("data/fineweb10B/fineweb_val_*.bin", val_tokens))
+val_inputs, val_targets = next(distributed_data_generator("../../../scratch/gilbreth/mangla/fineweb10B/fineweb_val_*.bin", val_tokens))
 
 model = GPT(vocab_size=50304, num_layers=12, model_dim=768).cuda()
 model.compile(dynamic=False)
 
 
-num_trials = 1
-
-
+num_trials = int(sys.argv[-1]) if len(sys.argv) > 1 else 1
 
 for _ in range(num_trials):
 
@@ -453,96 +299,80 @@ for _ in range(num_trials):
     ########################################
 
     # we want to minimize this while still reaching 3.28 val loss
-    train_steps = 3125
-    lr_steps = 3200
-    lr = 0.018
-    lr_power = 1.25
-    lr_floor = 0.0
+    train_steps = 3325
 
-
-    # initialize model parameters
-    for module in model.modules():
-        if hasattr(module, "reset_parameters"):
-            module.reset_parameters()
+    # initialize model parameters. Per-module multipliers on the default nn.Linear Kaiming-uniform
+    # init (std = 1/sqrt(3*fan_in), so ~0.0208 for fan_in=768 and ~0.0104 for fan_in=3072):
+    #   - attn.proj.weight (fan_in=768):  default × 1.25 → std ≈ 0.026
+    #   - mlp.proj.weight  (fan_in=3072): default × 3.0  → std ≈ 0.031
+    #   - mlp.fc.weight    (fan_in=768):  default × 1.5  → std ≈ 0.031
+    # qkv weights keep their default init. The vocab head (proj.weight) and all "proj" biases are
+    # zeroed so initial logits are 0.
     for name, p in model.named_parameters():
-        if name.endswith("gains"):
-            p.data.fill_(1)
-        elif name.endswith(".attn.proj.weight"):
-            p.data.mul_(1.25)
+        w = p.data
+        if name.endswith("weight"):
+            if "embed" in name:
+                w.normal_()  # default torch init
+            else:
+                w.normal_(std=0.33**0.5 / w.size(-1)**0.5)  # default torch init
+        elif name.endswith("bias"):
+            w.zero_()
+        elif name.endswith("gains"):
+            w.normal_(mean=1, std=0)
+        else:
+            raise Exception(f"Uninitialized parameter: {name}")
+        if name.endswith(".attn.proj.weight"):
+            w.mul_(1.25)
         elif name.endswith(".mlp.proj.weight"):
-            p.data.mul_(3.0)
+            w.mul_(3.0)
         elif name.endswith(".mlp.fc.weight"):
-            p.data.mul_(1.5)
-        elif name == "proj.weight":
-            p.data.zero_()
-        elif "proj" in name:
-            p.data.zero_()
+            w.mul_(1.5)
 
     # create the optimizer(s)
-    named_block_params = [(n, p) for n, p in model.named_parameters()
-                          if n.startswith("blocks.") and p.ndim >= 2]
-    qkv_params = [p for n, p in named_block_params
-                  if n.endswith(".attn.q.weight") or n.endswith(".attn.k.weight") or n.endswith(".attn.v.weight")]
-    mlp_fc_params = [p for n, p in named_block_params if n.endswith(".mlp.fc.weight")]
-    attn_proj_params = [p for n, p in named_block_params if n.endswith(".attn.proj.weight")]
-    mlp_proj_params = [p for n, p in named_block_params if n.endswith(".mlp.proj.weight")]
-
     optimizer1 = AdamW([dict(params=[model.embed.weight], lr=0.3),
                         dict(params=[model.proj.weight], lr=1/320),
                         dict(params=[p for p in model.parameters() if p.ndim < 2], lr=0.01)],
                        betas=(0.8, 0.95), eps=1e-10, weight_decay=0, fused=True)
-    optimizer2 = SOAPH(qkv_params, lr=lr)
-    optimizer3 = SOAPH(mlp_fc_params, lr=lr)
-    optimizer4 = SOAPH(attn_proj_params, lr=lr)
-    optimizer5 = SOAPH(mlp_proj_params, lr=lr)
-    optimizers = [optimizer1, optimizer2, optimizer3, optimizer4, optimizer5]
+    optimizer2 = MuonH([p for p in model.blocks.parameters() if p.ndim == 2], lr=0.018)
+    optimizers = [optimizer1, optimizer2]
     assert set(p for opt in optimizers for group in opt.param_groups
                for p in group["params"]) == set(model.parameters())
     for opt in optimizers:
         for group in opt.param_groups:
             group["initial_lr"] = group["lr"]
-
-    # learning rate schedule: stable then decay
-    for opt in (optimizer2, optimizer3, optimizer4, optimizer5):
-        for group in opt.param_groups:
-            group["cooldown_frac"] = 1.0
-            group["schedule_steps"] = lr_steps
-            group["lr_power"] = lr_power
-            group["lr_floor"] = lr_floor
-
     for group in optimizer1.param_groups:
         group["cooldown_frac"] = 0.4
-        group["schedule_steps"] = train_steps
-        group["lr_power"] = 1.0
-        group["lr_floor"] = 0.0
+    for group in optimizer2.param_groups:
+        group["cooldown_frac"] = 1.0
 
+    wandb_run = None
+    if dist.get_rank() == 0:
+        wandb_run = wandb.init(
+            project=os.environ.get("WANDB_PROJECT", "nanogpt"),
+            name='20260430_muonh',
+        )
+        print0(f"wandb run:{wandb_run.url}", console=True)
 
-    def _eta(progress: float, cooldown_frac: float, power: float = 1.0, floor: float = 0.0) -> float:
-        if progress < 1.0 - cooldown_frac:
-            return 1.0
+    fingerprint = OptimizerFingerprint.attach(
+        model,
+        optimizers,
+        run_name='20260430_muonh',
+        snapshot_interval=25,
+        wandb_run=wandb_run,
+    )
 
-        x = max(0.0, (1.0 - progress) / cooldown_frac)
-        return floor + (1.0 - floor) * (x ** power)
-
-
+    # learning rate schedule: stable then decay. The h (MuonH) groups use full linear cooldown
+    # over the entire run (cooldown_frac=1.0); the aux (AdamW) group uses a shorter cooldown
+    # (cooldown_frac=0.4) to keep the embed/head learning longer before tapering.
     def set_hparams(step):
+        progress = step / train_steps
+        assert 0 <= progress < 1
         for opt in optimizers:
             for group in opt.param_groups:
-                schedule_steps = group.get("schedule_steps", train_steps)
-                cooldown_frac = group.get("cooldown_frac", 1.0)
-                power = group.get("lr_power", 1.0)
-                floor = group.get("lr_floor", 0.0)
-
-                progress = step / schedule_steps
-                assert 0.0 <= progress < 1.0
-
-                eta = _eta(
-                    progress=progress,
-                    cooldown_frac=cooldown_frac,
-                    power=power,
-                    floor=floor,
-                )
-
+                if progress < 1 - group["cooldown_frac"]:
+                    eta = 1.0
+                else:
+                    eta = (1 - progress) / group["cooldown_frac"]
                 group["lr"] = group["initial_lr"] * eta
 
 
@@ -550,7 +380,7 @@ for _ in range(num_trials):
     #        Training and Validation       #
     ########################################
 
-    train_loader = distributed_data_generator("data/fineweb10B/fineweb_train_*.bin", batch_size)
+    train_loader = distributed_data_generator("../../../scratch/gilbreth/mangla/fineweb10B/fineweb_train_*.bin", batch_size)
     for p in model.parameters():
         dist.broadcast(p.detach(), 0)
     # start the clock
@@ -561,8 +391,7 @@ for _ in range(num_trials):
     for step in range(train_steps + 1):
 
         # --------------- VALIDATION SECTION -----------------
-        val_step_freq = 125 if step / train_steps < 0.9 else 25
-        if step == train_steps or step % val_step_freq == 0:
+        if step == train_steps or step % 125 == 0:
             # stop the clock
             dist.barrier()
             time_since_last_val = time.perf_counter() - t0
@@ -604,5 +433,12 @@ for _ in range(num_trials):
         approx_training_time = training_time + (time.perf_counter() - t0)
         print0(f"step:{step+1}/{train_steps} train_time:{approx_training_time:.3f}s"
                + f" step_avg:{1000*approx_training_time/(step + 1):.2f}ms", console=True, log=False)
+
+    fingerprint_path = fingerprint.finish()
+    if fingerprint_path is not None:
+        print0(f"optimizer fingerprint:{fingerprint_path}", console=True)
+
+    if wandb_run is not None:
+        wandb_run.finish()
 
 dist.destroy_process_group()

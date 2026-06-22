@@ -1,260 +1,65 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { basename, resolve } from 'node:path';
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
-
-export interface OptimizerConfig {
-	name: string;
-	description: string;
-	hparams: Record<string, JsonValue>;
-	paramGroups: Record<string, string>;
-}
-
-export interface FingerprintIndexEntry {
-	fingerprint_id: string;
-	schema: 'optimizer_fingerprint';
-	task_id?: string;
-	optimizer: string;
-	optimizer_family?: string;
-	seed: number;
-	snapshot_count?: number;
-	path: string;
-}
-
 export type MetricValue = number | null;
 
-export interface SnapshotFingerprint {
-	schema: 'optimizer_fingerprint';
-	fingerprint_id: string;
+export interface TraceParameter {
+	name: string;
+	shape: number[];
+	ndim: number;
+	numel: number;
+	optimizer_index?: number;
+	group_index?: number;
+	metrics: Record<string, MetricValue>;
+}
+
+export interface TraceSnapshot {
+	step: number;
+	learning_rates?: number[][];
+	parameters: TraceParameter[];
+}
+
+export interface NanoGptTrace {
+	schema: 'nanogpt_optimizer_trace';
+	run_name: string;
+	completed_steps: number;
+	snapshot_interval: number;
+	history_beta?: number;
+	epsilon?: number;
+	history_semantics?: string;
+	world_size?: number;
+	optimizer_classes: string[];
+	metric_names: string[];
+	snapshots: TraceSnapshot[];
+}
+
+export interface NormalizedTrace extends NanoGptTrace {
 	run_id: string;
-	task: {
-		id: string;
-		dataset: string;
-		batch_size: number;
-		seed: number;
-		max_steps: number;
-		snapshot_interval: number;
-		svd_max_dim: number;
-	};
-	model: {
-		id: string;
-	};
+	fingerprint_id: string;
+	display_name: string;
 	optimizer: {
 		name: string;
 		family: string;
-		[key: string]: JsonValue;
+		classes: string[];
 	};
-	metric_names: string[];
 	parameter_metric_names: string[];
-	snapshots: {
-		step: number;
-		metrics: Record<string, MetricValue>;
-		parameters: {
-			name: string;
-			shape: number[];
-			ndim: number;
-			numel: number;
-			metrics: Record<string, MetricValue>;
-		}[];
-	}[];
 }
 
-export interface LoadedFingerprint extends FingerprintIndexEntry {
-	full: SnapshotFingerprint;
-}
-
-export interface FingerprintIndex {
-	schema: 'fingerprint_index';
-	fingerprint_root: string;
-	fingerprints: FingerprintIndexEntry[];
+export interface LoadedRun {
+	run_id: string;
+	path: string;
+	schema: 'nanogpt_optimizer_trace';
+	run_name: string;
+	snapshot_count: number;
+	completed_steps: number;
+	optimizer_classes: string[];
+	full: NormalizedTrace;
 }
 
 const webRoot = process.cwd();
 const repoRoot = resolve(webRoot, '..');
-
-export const optimizerConfigs: OptimizerConfig[] = [
-	{
-		name: 'adafactor',
-		description: 'Adafactor factored coordinatewise updates over all trainable parameters.',
-		hparams: {
-			lr: 0.001,
-			beta2_decay: -0.8,
-			eps: [null, 0.001],
-			d: 1.0,
-			weight_decay: 0.01,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-	{
-		name: 'adamw',
-		description: 'AdamW over all trainable parameters.',
-		hparams: {
-			lr: 0.001,
-			betas: [0.9, 0.95],
-			weight_decay: 0.01,
-			eps: 1.0e-8,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-	{
-		name: 'lion',
-		description: 'Lion sign update with momentum over all trainable parameters.',
-		hparams: {
-			lr: 0.0001,
-			betas: [0.9, 0.99],
-			weight_decay: 0.01,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-	{
-		name: 'muon',
-		description: 'Matrix-like parameters use Muon; auxiliary parameters use AdamW.',
-		hparams: {
-			lr: 0.02,
-			weight_decay: 0.01,
-			mu: 0.95,
-			nesterov: true,
-			ns_steps: 12,
-			adam_lr: 0.001,
-			adam_betas: [0.9, 0.95],
-			adam_eps: 1.0e-8,
-			adam_weight_decay: 0.01,
-		},
-		paramGroups: {
-			matrix: 'ndim>=2',
-			aux: 'ndim<2',
-		},
-	},
-	{
-		name: 'sam_adamw',
-		description: 'SAM perturbation step with AdamW base optimizer over all trainable parameters.',
-		hparams: {
-			lr: 0.001,
-			betas: [0.9, 0.95],
-			weight_decay: 0.01,
-			eps: 1.0e-8,
-			rho: 0.05,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-	{
-		name: 'sgd',
-		description: 'Plain SGD over all trainable parameters.',
-		hparams: {
-			lr: 0.1,
-			weight_decay: 0.0,
-			momentum: 0.0,
-			dampening: 0.0,
-			nesterov: false,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-	{
-		name: 'sgd_momentum',
-		description: 'SGD with momentum over all trainable parameters.',
-		hparams: {
-			lr: 0.1,
-			weight_decay: 0.0,
-			momentum: 0.9,
-			dampening: 0.0,
-			nesterov: false,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-	{
-		name: 'shampoo_default',
-		description: 'Distributed Shampoo over matrix-like parameters with AdamW auxiliary parameters.',
-		hparams: {
-			lr: 0.01,
-			betas: [0.9, 0.9],
-			beta2: 0.9,
-			epsilon: 1.0e-12,
-			weight_decay: 0.01,
-			adam_lr: 0.001,
-			adam_betas: [0.9, 0.95],
-			preconditioner: 'default',
-			max_preconditioner_dim: 8192,
-			precondition_frequency: 1,
-			start_preconditioning_step: -1,
-			grafting_epsilon: 1.0e-15,
-		},
-		paramGroups: {
-			matrix: 'ndim>=2',
-			aux: 'ndim<2',
-		},
-	},
-	{
-		name: 'shampoo_pinv_one_sided',
-		description: 'Pseudoinverse-root one-sided Shampoo over matrix-like parameters with AdamW auxiliary parameters.',
-		hparams: {
-			lr: 0.01,
-			betas: [0.9, 0.9],
-			beta2: 0.9,
-			epsilon: 0.0,
-			weight_decay: 0.01,
-			adam_lr: 0.001,
-			adam_betas: [0.9, 0.95],
-			preconditioner: 'pinv_one_sided',
-			max_preconditioner_dim: 8192,
-			precondition_frequency: 1,
-			start_preconditioning_step: -1,
-			grafting_epsilon: 1.0e-15,
-		},
-		paramGroups: {
-			matrix: 'ndim>=2',
-			aux: 'ndim<2',
-		},
-	},
-	{
-		name: 'soap',
-		description:
-			'SOAP-style Adam updates in the Shampoo preconditioner eigenbasis for matrix-like parameters with AdamW auxiliary parameters.',
-		hparams: {
-			lr: 0.001,
-			betas: [0.9, 0.95],
-			beta2: 0.95,
-			epsilon: 1.0e-8,
-			weight_decay: 0.01,
-			adam_lr: 0.001,
-			adam_betas: [0.9, 0.95],
-			preconditioner: 'soap',
-			max_preconditioner_dim: 8192,
-			precondition_frequency: 1,
-			start_preconditioning_step: -1,
-			grafting_epsilon: 1.0e-8,
-		},
-		paramGroups: {
-			matrix: 'ndim>=2',
-			aux: 'ndim<2',
-		},
-	},
-	{
-		name: 'sophia_g',
-		description: 'Sophia-G style clipped diagonal curvature updates over all trainable parameters.',
-		hparams: {
-			lr: 0.001,
-			betas: [0.965, 0.99],
-			rho: 0.04,
-			weight_decay: 0.01,
-			eps: 1.0e-12,
-		},
-		paramGroups: {
-			all: 'trainable',
-		},
-	},
-];
+const traceRoot = resolve(repoRoot, 'nanogpt', 'traces');
 
 export function formatJsonValue(value: JsonValue | undefined): string {
 	if (value === undefined) {
@@ -282,71 +87,106 @@ export function formatNumber(value: unknown): string {
 	});
 }
 
-export function loadFingerprintIndex(): FingerprintIndex {
-	const path = resolve(webRoot, 'public', 'fingerprints.json');
-	if (!existsSync(path)) {
-		return {
-			schema: 'fingerprint_index',
-			fingerprint_root: 'fingerprints',
-			fingerprints: [],
-		};
+export function loadRuns(): LoadedRun[] {
+	if (!existsSync(traceRoot)) {
+		return [];
 	}
-	return JSON.parse(readFileSync(path, 'utf8')) as FingerprintIndex;
+
+	return readdirSync(traceRoot)
+		.filter((name) => name.endsWith('.json'))
+		.sort()
+		.flatMap((name) => {
+			const path = resolve(traceRoot, name);
+			const trace = readTrace(path, name);
+			if (!trace) return [];
+			return [
+				{
+					run_id: trace.run_id,
+					path: `nanogpt/traces/${name}`,
+					schema: trace.schema,
+					run_name: trace.run_name,
+					snapshot_count: trace.snapshots.length,
+					completed_steps: trace.completed_steps,
+					optimizer_classes: trace.optimizer_classes,
+					full: trace,
+				},
+			];
+		});
 }
 
-export function loadFingerprints(): LoadedFingerprint[] {
-	const index = loadFingerprintIndex();
-	return index.fingerprints.flatMap((entry) => {
-		const full = readFingerprint(entry.path);
-		return full ? [{ ...entry, full }] : [];
-	});
-}
+export const loadFingerprints = loadRuns;
 
-export function countFingerprintsByOptimizer(fingerprints: LoadedFingerprint[]): Map<string, number> {
+export function countRunsByName(runs: LoadedRun[]): Map<string, number> {
 	const counts = new Map<string, number>();
-	for (const fingerprint of fingerprints) {
-		counts.set(fingerprint.optimizer, (counts.get(fingerprint.optimizer) ?? 0) + 1);
+	for (const run of runs) {
+		counts.set(run.run_name, (counts.get(run.run_name) ?? 0) + 1);
 	}
 	return counts;
 }
 
-export function isSnapshotFingerprint(value: unknown): value is SnapshotFingerprint {
+export const countFingerprintsByOptimizer = countRunsByName;
+
+export function runSnapshotCount(run: LoadedRun): number {
+	return run.full.snapshots.length;
+}
+
+export const fingerprintSnapshotCount = runSnapshotCount;
+
+export function runTaskId(): string {
+	return 'nanogpt';
+}
+
+export const fingerprintTaskId = runTaskId;
+
+export function isNanoGptTrace(value: unknown): value is NanoGptTrace {
 	if (!value || typeof value !== 'object') {
 		return false;
 	}
-	const candidate = value as Partial<SnapshotFingerprint>;
+	const candidate = value as Partial<NanoGptTrace>;
 	return (
-		candidate.schema === 'optimizer_fingerprint' &&
-		typeof candidate.fingerprint_id === 'string' &&
-		typeof candidate.run_id === 'string' &&
-		typeof candidate.task === 'object' &&
-		typeof candidate.model === 'object' &&
-		typeof candidate.optimizer === 'object' &&
+		candidate.schema === 'nanogpt_optimizer_trace' &&
+		typeof candidate.run_name === 'string' &&
+		typeof candidate.completed_steps === 'number' &&
+		typeof candidate.snapshot_interval === 'number' &&
+		Array.isArray(candidate.optimizer_classes) &&
 		Array.isArray(candidate.metric_names) &&
-		Array.isArray(candidate.parameter_metric_names) &&
 		Array.isArray(candidate.snapshots)
 	);
 }
 
-export function fingerprintTaskId(fingerprint: LoadedFingerprint): string {
-	return fingerprint.full.task.id;
-}
-
-export function fingerprintSnapshotCount(fingerprint: LoadedFingerprint): number | undefined {
-	return fingerprint.full.snapshots.length;
-}
-
-function readFingerprint(entryPath: string): SnapshotFingerprint | undefined {
-	const candidates = [
-		resolve(repoRoot, entryPath),
-		resolve(webRoot, 'public', entryPath),
-		resolve(webRoot, 'public', entryPath.replace(/^web\/public\//, '')),
-	];
-	for (const candidate of candidates) {
-		if (existsSync(candidate)) {
-			const fingerprint = JSON.parse(readFileSync(candidate, 'utf8')) as unknown;
-			return isSnapshotFingerprint(fingerprint) ? fingerprint : undefined;
-		}
+function readTrace(path: string, filename: string): NormalizedTrace | undefined {
+	const parsed = JSON.parse(readFileSync(path, 'utf8')) as unknown;
+	if (!isNanoGptTrace(parsed)) {
+		return undefined;
 	}
-	return undefined;
+	return normalizeTrace(parsed, filename);
+}
+
+function normalizeTrace(trace: NanoGptTrace, filename: string): NormalizedTrace {
+	const runId = basename(filename, '.json');
+	const displayName = trace.run_name || runId;
+	const parameterMetricNames = trace.metric_names.length
+		? trace.metric_names
+		: Array.from(new Set(trace.snapshots.flatMap((snapshot) => snapshot.parameters.flatMap((parameter) => Object.keys(parameter.metrics)))));
+
+	return {
+		...trace,
+		run_id: runId,
+		fingerprint_id: runId,
+		display_name: displayName,
+		optimizer: {
+			name: displayName,
+			family: trace.optimizer_classes.join(' + ') || 'optimizer',
+			classes: trace.optimizer_classes,
+		},
+		parameter_metric_names: parameterMetricNames,
+		snapshots: trace.snapshots.map((snapshot) => ({
+			...snapshot,
+			parameters: snapshot.parameters.map((parameter) => ({
+				...parameter,
+				ndim: parameter.ndim ?? parameter.shape.length,
+				numel: parameter.numel ?? parameter.shape.reduce((product, size) => product * size, 1),
+			})),
+		})),
+	};
 }
