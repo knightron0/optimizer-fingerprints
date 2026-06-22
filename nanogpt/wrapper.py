@@ -102,6 +102,34 @@ def _metrics(name, theta, gradient, update, history):
     }
 
 
+def _learning_rates(optimizer):
+    direct = []
+    missing_direct = False
+    for group in optimizer.param_groups:
+        if "lr" in group:
+            direct.append(float(group["lr"]))
+        else:
+            missing_direct = True
+    if direct and not missing_direct:
+        return direct
+
+    inner_optimizer = getattr(optimizer, "inner_optimizer", None)
+    if inner_optimizer is not None:
+        if isinstance(inner_optimizer, (list, tuple)):
+            inner_optimizers = inner_optimizer
+        else:
+            inner_optimizers = [inner_optimizer]
+        inner = [
+            lr
+            for inner_opt in inner_optimizers
+            for lr in _learning_rates(inner_opt)
+        ]
+        if inner:
+            return inner
+
+    return direct
+
+
 class OptimizerFingerprint:
     """Sample ``parameter_after - parameter_before`` around optimizer steps."""
 
@@ -239,8 +267,7 @@ class OptimizerFingerprint:
                 snapshot = {
                     "step": self.step,
                     "learning_rates": [
-                        [float(group["lr"]) for group in optimizer.param_groups]
-                        for optimizer in self.optimizers
+                        _learning_rates(optimizer) for optimizer in self.optimizers
                     ],
                     "parameters": self.current_parameters,
                 }
