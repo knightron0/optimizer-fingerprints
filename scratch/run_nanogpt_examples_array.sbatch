@@ -6,7 +6,7 @@
 #SBATCH --account=cgoergen
 #SBATCH --qos=standby
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=2
 #SBATCH --partition=a100-40gb,a100-80gb
 #SBATCH --mem=50G
 #SBATCH --array=0-48
@@ -29,4 +29,4 @@ echo "SLURM_ARRAY_TASK_ID=${SLURM_ARRAY_TASK_ID}"
 echo "script=${script}"
 echo "NANOGPT_SEED=${NANOGPT_SEED}"
 
-torchrun --standalone --nproc_per_node=1 "${script}"
+torchrun --standalone --nproc_per_node=2 "${script}"
