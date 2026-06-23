@@ -1,4 +1,5 @@
 {
+  "20260430_adamh": "AdamH",
   "20260430_muonh": "MuonH",
   "20260430_normuonh": "NorMuonH",
   "20260501_contra_muon": "Contra Muon",
@@ -17,10 +18,12 @@
   "20260509_contra_soft_muon": "Soft Muon",
   "20260511_dampen_radial_gradient_component": "Radial Dampen",
   "20260511_klsoap_h_lr_power_decay": "KLSOAP Decay",
+  "20260513_shampoo_1_4_power": "Shampoo 1/4",
   "20260514_aurora_proj_pruned_extended_contra": "Aurora Contra",
   "20260514_sinksoap": "SinkSOAP",
   "20260515_contranormuown": "Contra Muown",
   "20260518_soda_fade_3000_n9": "SODA Fade",
+  "20260519_dynmuon": "DynMuon",
   "20260520_rre_extrapolation_pr300_2925": "RRE Extrapolation",
   "20260520_tail_refinterp_2900": "Tail RefInterp",
   "20260522_ema_nesterov_aurora_proj": "Aurora Nesterov",
@@ -33,12 +36,12 @@
   "20260610_tuned_baseline_3250": "Tuned Baseline",
   "20260611_muonh_tuned_aux_3250": "MuonH Tuned",
   "20260611_tailema_2720_submission": "TailEMA 2720",
-  "20260611_tailema_2730_submission": "TailEMA 2730",
+  "20260611_tailema_2730_submission": null,
   "20260619_cwd_rowfloor_tailema": "CWD RowFloor TailEMA",
-  "aurora": "Aurora 50",
+  "aurora": null,
   "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5": "MuonAdam E01",
   "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833": "MuonAdam E03",
   "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938": "MuonAdam E06",
   "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a": "MuonAdam E12",
-  "top_level_478c0427": "Top-Level Muon"
+  "top_level_478c0427": null
 }

@@ -1,256 +1,382 @@
 {
   "traces": [
     {
-      "id": "20260430_muonh-82877e98065047e793c1778066611d8e",
-      "title": "MuonH",
-      "description": "20260430_muonh · AdamW + MuonH · 3,325 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260430_muonh-82877e98065047e793c1778066611d8e.json"
-    },
-    {
-      "id": "20260430_normuonh-62494bc74f2f4637b18ecd60ddace7d5",
-      "title": "NorMuonH",
-      "description": "20260430_normuonh · AdamW + NorMuonH · 3,275 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260430_normuonh-62494bc74f2f4637b18ecd60ddace7d5.json"
-    },
-    {
-      "id": "20260501_contra_muon-3ac51b9735c646a29bbb12bb26827d8f",
-      "title": "Contra Muon",
-      "description": "20260501_contra_muon · AdamW + Muon · 3,225 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260501_contra_muon-3ac51b9735c646a29bbb12bb26827d8f.json"
-    },
-    {
-      "id": "20260501_muonsq-0c36a14bc9874bc09dbc267e26929b6d",
-      "title": "MuonSq",
-      "description": "20260501_muonsq · AdamW + MuonSq · 3,325 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260501_muonsq-0c36a14bc9874bc09dbc267e26929b6d.json"
-    },
-    {
-      "id": "20260501_skylight001-733a9a1a4c1f478c8063da9d26c5c748",
-      "title": "Skylight",
-      "description": "20260501_skylight001 · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260501_skylight001-733a9a1a4c1f478c8063da9d26c5c748.json"
-    },
-    {
-      "id": "20260503_normuon-9b0724878ef24108b121757408d3ed24",
-      "title": "NorMuon",
-      "description": "20260503_normuon · AdamW + NorMuon · 3,300 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260503_normuon-9b0724878ef24108b121757408d3ed24.json"
-    },
-    {
-      "id": "20260504_contra_muon_mlp_soapish-268c9501b9734cda906e347e291be958",
-      "title": "Soapish MLP",
-      "description": "20260504_contra_muon_mlp_soapish · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260504_contra_muon_mlp_soapish-268c9501b9734cda906e347e291be958.json"
-    },
-    {
-      "id": "20260504_muloco_normuonh-87fceabc9949477ca089c7dab3bd0a93",
-      "title": "MuLoCo NorMuon",
-      "description": "20260504_muloco_normuonh · AdamW + NorMuonH · 3,240 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260504_muloco_normuonh-87fceabc9949477ca089c7dab3bd0a93.json"
-    },
-    {
-      "id": "20260505_aurora-1c6c79b9d67a4c629c28e15a3c2b07b2",
-      "title": "Aurora 25",
-      "description": "20260505_aurora · AdamW + Muon · 3,200 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260505_aurora-1c6c79b9d67a4c629c28e15a3c2b07b2.json"
-    },
-    {
-      "id": "20260505_newton_muon-6137485aa649441fb9ab41f54069d64d",
-      "title": "Newton Muon",
-      "description": "20260505_newton_muon · AdamW + Muon · 3,300 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260505_newton_muon-6137485aa649441fb9ab41f54069d64d.json"
-    },
-    {
-      "id": "20260506_trustlight-5b69d347726e4691932bde5ba1a7bef5",
-      "title": "Trustlight",
-      "description": "20260506_trustlight · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260506_trustlight-5b69d347726e4691932bde5ba1a7bef5.json"
-    },
-    {
-      "id": "20260507_pmuon-d98df50a502741fb90514c15ac12cec7",
-      "title": "PMuon",
-      "description": "20260507_pmuon · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260507_pmuon-d98df50a502741fb90514c15ac12cec7.json"
-    },
-    {
-      "id": "20260508_klsoap_h_clean_tuple_sweep-8b547fae18d3461ab910ea20c2961145",
-      "title": "KLSOAP-H Sweep",
-      "description": "20260508_klsoap_h_clean_tuple_sweep · AdamW + KLSOAPH · 3,125 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260508_klsoap_h_clean_tuple_sweep-8b547fae18d3461ab910ea20c2961145.json"
-    },
-    {
-      "id": "20260508_muown-39939a1ae20647af90f960d44d5119ba",
-      "title": "Muown",
-      "description": "20260508_muown · AdamW + MuownDP · 3,090 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260508_muown-39939a1ae20647af90f960d44d5119ba.json"
-    },
-    {
-      "id": "20260509_contra_muon_split_cooldown-4d7156ea789441e5905877da31ebfa21",
-      "title": "Contra Cooldown",
-      "description": "20260509_contra_muon_split_cooldown · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260509_contra_muon_split_cooldown-4d7156ea789441e5905877da31ebfa21.json"
-    },
-    {
-      "id": "20260509_contra_soft_muon-faa60c1e7c9b46cbaa9d511c7756b4d4",
-      "title": "Soft Muon",
-      "description": "20260509_contra_soft_muon · AdamW + Muon · 3,040 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260509_contra_soft_muon-faa60c1e7c9b46cbaa9d511c7756b4d4.json"
-    },
-    {
-      "id": "20260511_dampen_radial_gradient_component-f3b60ab3c90c4e9b9ee9bcf5aede58c8",
-      "title": "Radial Dampen",
-      "description": "20260511_dampen_radial_gradient_component · AdamW + Muon · 3,020 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260511_dampen_radial_gradient_component-f3b60ab3c90c4e9b9ee9bcf5aede58c8.json"
-    },
-    {
-      "id": "20260511_klsoap_h_lr_power_decay-ef1fdeed4bc349e490061cb66492d448",
-      "title": "KLSOAP Decay",
-      "description": "20260511_klsoap_h_lr_power_decay · AdamW + KLSOAPH · 3,040 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260511_klsoap_h_lr_power_decay-ef1fdeed4bc349e490061cb66492d448.json"
-    },
-    {
-      "id": "20260514_aurora_proj_pruned_extended_contra-d356ad8218c442b085ec0453bfae2a23",
-      "title": "Aurora Contra",
-      "description": "20260514_aurora_proj_pruned_extended_contra · AdamW + Muon · 3,020 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260514_aurora_proj_pruned_extended_contra-d356ad8218c442b085ec0453bfae2a23.json"
-    },
-    {
-      "id": "20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c",
-      "title": "SinkSOAP",
-      "description": "20260514_sinksoap · AdamW + SinkSOAP · 3,125 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c.json"
-    },
-    {
-      "id": "20260515_contranormuown-7474b4940a26466e92c17978f1fea461",
-      "title": "Contra Muown",
-      "description": "20260515_contranormuown · AdamW + MuownDP · 3,000 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260515_contranormuown-7474b4940a26466e92c17978f1fea461.json"
-    },
-    {
-      "id": "20260518_soda_fade_3000_n9-eebab4e66a004e6b994b11a80791617b",
-      "title": "SODA Fade",
-      "description": "20260518_soda_fade_3000_n9 · AdamW + Muon · 3,040 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260518_soda_fade_3000_n9-eebab4e66a004e6b994b11a80791617b.json"
-    },
-    {
-      "id": "20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f",
-      "title": "RRE Extrapolation",
-      "description": "20260520_rre_extrapolation_pr300_2925 · AdamW + Muon · 2,925 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f.json"
-    },
-    {
-      "id": "20260520_tail_refinterp_2900-5ef8e31716a540bba70491b3678a9956",
-      "title": "Tail RefInterp",
-      "description": "20260520_tail_refinterp_2900 · AdamW + Muon · 2,900 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260520_tail_refinterp_2900-5ef8e31716a540bba70491b3678a9956.json"
-    },
-    {
-      "id": "20260522_ema_nesterov_aurora_proj-37388d161c1a4f7696cffcc43f9c20fe",
-      "title": "Aurora Nesterov",
-      "description": "20260522_ema_nesterov_aurora_proj · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260522_ema_nesterov_aurora_proj-37388d161c1a4f7696cffcc43f9c20fe.json"
-    },
-    {
-      "id": "20260522_ema_nesterov_muon-266d25058a994dfda8231abbad894c8e",
-      "title": "Muon Nesterov",
-      "description": "20260522_ema_nesterov_muon · EMA_Nesterov · 3,150 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260522_ema_nesterov_muon-266d25058a994dfda8231abbad894c8e.json"
-    },
-    {
-      "id": "20260523_circuit_muon-4ffee47f70b944db82297f14ce784c1d",
-      "title": "Circuit Muon",
-      "description": "20260523_circuit_muon · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260523_circuit_muon-4ffee47f70b944db82297f14ce784c1d.json"
-    },
-    {
-      "id": "20260525_aurora_ema_ref-00d59e6d6776414c871add683a7f92b2",
-      "title": "Aurora EMA",
-      "description": "20260525_aurora_ema_ref · EMA_Nesterov · 2,860 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260525_aurora_ema_ref-00d59e6d6776414c871add683a7f92b2.json"
-    },
-    {
-      "id": "20260527_psgd-39ea6ba478c547cda8d70eda96e94309",
-      "title": "PSGD",
-      "description": "20260527_psgd · AdamW + PSGDKron · 3,400 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260527_psgd-39ea6ba478c547cda8d70eda96e94309.json"
-    },
-    {
-      "id": "20260529_tail_phase_readout_2850-1be83fb9ff2f40248973ed8a1838a38b",
-      "title": "Tail Readout",
-      "description": "20260529_tail_phase_readout_2850 · EMA_Nesterov · 2,850 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260529_tail_phase_readout_2850-1be83fb9ff2f40248973ed8a1838a38b.json"
-    },
-    {
-      "id": "20260609_soap_f1_auxb2_clean-d0e85a5c928d4d6fbc9a3fd6d8032cf6",
-      "title": "SOAP-F1 Clean",
-      "description": "20260609_soap_f1_auxb2_clean · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260609_soap_f1_auxb2_clean-d0e85a5c928d4d6fbc9a3fd6d8032cf6.json"
-    },
-    {
-      "id": "20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c",
-      "title": "Tuned Baseline",
-      "description": "20260610_tuned_baseline_3250 · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c.json"
-    },
-    {
-      "id": "20260611_muonh_tuned_aux_3250-75e68aea378248af952c527abace21c9",
-      "title": "MuonH Tuned",
-      "description": "20260611_muonh_tuned_aux_3250 · AdamW + MuonH · 3,250 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260611_muonh_tuned_aux_3250-75e68aea378248af952c527abace21c9.json"
-    },
-    {
-      "id": "20260611_tailema_2720_submission-a3bd328e76be41c49b873e35badc8952",
-      "title": "TailEMA 2720",
-      "description": "20260611_tailema_2720_submission · EMA_Nesterov · 2,720 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260611_tailema_2720_submission-a3bd328e76be41c49b873e35badc8952.json"
-    },
-    {
-      "id": "20260611_tailema_2730_submission-cc219ccf3f4645fa80f0bb121d5ab69c",
-      "title": "TailEMA 2730",
-      "description": "20260611_tailema_2730_submission · EMA_Nesterov · 2,730 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260611_tailema_2730_submission-cc219ccf3f4645fa80f0bb121d5ab69c.json"
-    },
-    {
-      "id": "20260619_cwd_rowfloor_tailema-6f0b2f934a3e438da43f04dd05736b75",
-      "title": "CWD RowFloor TailEMA",
-      "description": "20260619_cwd_rowfloor_tailema · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260619_cwd_rowfloor_tailema-6f0b2f934a3e438da43f04dd05736b75.json"
-    },
-    {
-      "id": "aurora-05c61878cc7f43c6aeeb3f05daa2a55b",
-      "title": "Aurora 50",
-      "description": "aurora · AdamW + Muon · 3,200 completed steps · snapshots every 50 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/aurora-05c61878cc7f43c6aeeb3f05daa2a55b.json"
-    },
-    {
       "id": "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5-92879940006040b9913ed2c811eb39d3",
-      "title": "MuonAdam E01",
-      "description": "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5 · AdamW + Muon · 3,600 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5-92879940006040b9913ed2c811eb39d3.json"
+      "title": "#01 MuonAdam E01",
+      "description": "Muon with aux Adam, lr=.02 wd=.01",
+      "record_number": 1,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/7b8270c5-a9cd-4a73-b7d8-5d86a2d1e428.txt",
+      "trace_details": "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5 · AdamW + Muon · 3,600 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5-92879940006040b9913ed2c811eb39d3.json"
     },
     {
       "id": "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833-1acd5755b48b4705b284a402ccc7525a",
-      "title": "MuonAdam E03",
-      "description": "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833 · AdamW + Muon · 3,500 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833-1acd5755b48b4705b284a402ccc7525a.json"
+      "title": "#03 MuonAdam E03",
+      "description": "Muon with aux Adam, lr=.025 wd=.0125",
+      "record_number": 3,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/311d7833-8dfc-43ea-a55c-fd313a11c4a8.txt",
+      "trace_details": "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833 · AdamW + Muon · 3,500 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833-1acd5755b48b4705b284a402ccc7525a.json"
+    },
+    {
+      "id": "20260430_adamh-f1dfd56432c64ebc8800d68b3eaac8a3",
+      "title": "#04 AdamH",
+      "description": "AdamH with per-module initialization, lr=.018, betas=(.9, .95), full matrix cooldown, and aux cooldown_frac=.4",
+      "record_number": 4,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260430_adamh/7533dd87-107f-4a4f-8229-acbec0fb00ac.txt",
+      "trace_details": "20260430_adamh · AdamW + AdamH · 4,875 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260430_adamh-f1dfd56432c64ebc8800d68b3eaac8a3.json"
+    },
+    {
+      "id": "20260430_muonh-82877e98065047e793c1778066611d8e",
+      "title": "#05 MuonH",
+      "description": "MuonH (Muon + hyperball constraint on hidden matrices) with per-module initialization, lr=.018, full matrix cooldown, and aux cooldown_frac=.4",
+      "record_number": 5,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260430_muonh/9319c798-6643-464a-b407-b05468e468f5.txt",
+      "trace_details": "20260430_muonh · AdamW + MuonH · 3,325 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260430_muonh-82877e98065047e793c1778066611d8e.json"
     },
     {
       "id": "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938-db50b910e19d433a958ca35a7edd18a4",
-      "title": "MuonAdam E06",
-      "description": "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938 · AdamW + Muon · 3,375 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938-db50b910e19d433a958ca35a7edd18a4.json"
+      "title": "#06 MuonAdam E06",
+      "description": "Muon with aux Adam, lr=.025 wd=.025",
+      "record_number": 6,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/51ece938-03c5-4343-8dcc-3f3336b07008.txt",
+      "trace_details": "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938 · AdamW + Muon · 3,375 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938-db50b910e19d433a958ca35a7edd18a4.json"
+    },
+    {
+      "id": "20260501_muonsq-0c36a14bc9874bc09dbc267e26929b6d",
+      "title": "#07 MuonSq",
+      "description": "Muon² with aux Adam, lr=.10 wd=.0125 β₂=.95 ε=1e-10",
+      "record_number": 7,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260501_muonsq/bb903816-ea27-4f5f-8028-c963d38c6a7f.txt",
+      "trace_details": "20260501_muonsq · AdamW + MuonSq · 3,325 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260501_muonsq-0c36a14bc9874bc09dbc267e26929b6d.json"
+    },
+    {
+      "id": "20260430_normuonh-62494bc74f2f4637b18ecd60ddace7d5",
+      "title": "#08 NorMuonH",
+      "description": "NorMuonH: Muon direction with row/column variance preconditioning and a hyperball constraint on hidden matrices",
+      "record_number": 8,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260430_normuonh/f45b5dcf-16bb-4e83-b5c7-4ef4981f0e9f.txt",
+      "trace_details": "20260430_normuonh · AdamW + NorMuonH · 3,275 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260430_normuonh-62494bc74f2f4637b18ecd60ddace7d5.json"
+    },
+    {
+      "id": "20260501_skylight001-733a9a1a4c1f478c8063da9d26c5c748",
+      "title": "#09 Skylight",
+      "description": "NorMuon with aux Adam and a u/w floor that clamps the update-to-weight norm ratio to 0.35, lr=.0375",
+      "record_number": 9,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260501_skylight001/f78af80a-2ba3-4cf7-b9f7-e6e56ff2c54d.txt",
+      "trace_details": "20260501_skylight001 · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260501_skylight001-733a9a1a4c1f478c8063da9d26c5c748.json"
+    },
+    {
+      "id": "20260503_normuon-9b0724878ef24108b121757408d3ed24",
+      "title": "#10 NorMuon",
+      "description": "NorMuon lr=.035 wd=.025, ending 50 steps early",
+      "record_number": 10,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260503_normuon/e0d0185f-ccb8-426d-8265-a4e762ec69f6.txt",
+      "trace_details": "20260503_normuon · AdamW + NorMuon · 3,300 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260503_normuon-9b0724878ef24108b121757408d3ed24.json"
+    },
+    {
+      "id": "20260501_contra_muon-3ac51b9735c646a29bbb12bb26827d8f",
+      "title": "#11 Contra Muon",
+      "description": "Setup from #9 plus the Contra-Muon technique",
+      "record_number": 11,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260501_contra_muon/08cd60f9-99e2-4e28-b1ac-19136dd42a05.txt",
+      "trace_details": "20260501_contra_muon · AdamW + Muon · 3,225 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260501_contra_muon-3ac51b9735c646a29bbb12bb26827d8f.json"
     },
     {
       "id": "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a-315793dbd5d14f6abf38fe6780a5606a",
-      "title": "MuonAdam E12",
-      "description": "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a · AdamW + Muon · 3,350 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a-315793dbd5d14f6abf38fe6780a5606a.json"
+      "title": "#12 MuonAdam E12",
+      "description": "Muon with aux Adam, lr=.035 wd=.025 following #10, ending 25 steps early following #8",
+      "record_number": 12,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/1bd8db7a-f3a3-4195-856d-cab7e0816443.txt",
+      "trace_details": "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a · AdamW + Muon · 3,350 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a-315793dbd5d14f6abf38fe6780a5606a.json"
     },
     {
-      "id": "top_level_478c0427-6e06bfc24fa24cafbe3486161070f644",
-      "title": "Top-Level Muon",
-      "description": "top_level_478c0427 · AdamW + Muon · 3,150 completed steps · snapshots every 25 steps",
-      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/top_level_478c0427-6e06bfc24fa24cafbe3486161070f644.json"
+      "id": "20260504_muloco_normuonh-87fceabc9949477ca089c7dab3bd0a93",
+      "title": "#13 MuLoCo NorMuon",
+      "description": "NorMuonH wrapped in MuLoCo-style outer Nesterov SGD over all trainable parameters",
+      "record_number": 13,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260504_muloco_normuonh/7fba9434-58d8-4166-b6a7-d62ef8d17e5d.txt",
+      "trace_details": "20260504_muloco_normuonh · AdamW + NorMuonH · 3,240 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260504_muloco_normuonh-87fceabc9949477ca089c7dab3bd0a93.json"
+    },
+    {
+      "id": "20260504_contra_muon_mlp_soapish-268c9501b9734cda906e347e291be958",
+      "title": "#14 Soapish MLP",
+      "description": "Setup from #11 plus SOAP preconditioning before Muon orthogonalization for the MLP weights",
+      "record_number": 14,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260504_contra_muon_mlp_soapish/0248394b-0d6c-4133-9ff7-e7ff2763cdd9.txt",
+      "trace_details": "20260504_contra_muon_mlp_soapish · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260504_contra_muon_mlp_soapish-268c9501b9734cda906e347e291be958.json"
+    },
+    {
+      "id": "20260505_newton_muon-6137485aa649441fb9ab41f54069d64d",
+      "title": "#15 Newton Muon",
+      "description": "Newton-Muon with activation-covariance right preconditioning refreshed every 64 steps and tuned learning rates and weight decay",
+      "record_number": 15,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260505_newton_muon/6fb302c7-d271-491b-906f-75cd6ec72075.txt",
+      "trace_details": "20260505_newton_muon · AdamW + Muon · 3,300 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260505_newton_muon-6137485aa649441fb9ab41f54069d64d.json"
+    },
+    {
+      "id": "20260506_trustlight-5b69d347726e4691932bde5ba1a7bef5",
+      "title": "#16 Trustlight",
+      "description": "Setup from #14 plus SOAP preconditioning for attention with a trust gate",
+      "record_number": 16,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260506_trustlight/fake_log_from_seed0.txt",
+      "trace_details": "20260506_trustlight · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260506_trustlight-5b69d347726e4691932bde5ba1a7bef5.json"
+    },
+    {
+      "id": "20260505_aurora-1c6c79b9d67a4c629c28e15a3c2b07b2",
+      "title": "#17 Aurora 25",
+      "description": "Setup from #11 plus Aurora",
+      "record_number": 17,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260505_aurora/298f02bc-dbb4-4661-9ad8-f6429d532873.txt",
+      "trace_details": "20260505_aurora · AdamW + Muon · 3,200 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260505_aurora-1c6c79b9d67a4c629c28e15a3c2b07b2.json"
+    },
+    {
+      "id": "20260507_pmuon-d98df50a502741fb90514c15ac12cec7",
+      "title": "#18 PMuon",
+      "description": "PMuon: Muon with bilateral streaming covariance power preconditioning, lr=.035 wd=.025 γ=.3 β=.95",
+      "record_number": 18,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260507_pmuon/54fc0541-7a62-4772-a8f8-d3a46ad10dba.txt",
+      "trace_details": "20260507_pmuon · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260507_pmuon-d98df50a502741fb90514c15ac12cec7.json"
+    },
+    {
+      "id": "20260508_klsoap_h_clean_tuple_sweep-8b547fae18d3461ab910ea20c2961145",
+      "title": "#19 KLSOAP-H Sweep",
+      "description": "Setup from #8 with NorMuonH replaced by KL-SOAP with hyperball optimization and precondition_frequency=1",
+      "record_number": 19,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260508_klsoap_h_clean_tuple_sweep/b1095_sh090/klsoap-h-b1095_sh090-K3125-seed-1.full.txt",
+      "trace_details": "20260508_klsoap_h_clean_tuple_sweep · AdamW + KLSOAPH · 3,125 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260508_klsoap_h_clean_tuple_sweep-8b547fae18d3461ab910ea20c2961145.json"
+    },
+    {
+      "id": "20260509_contra_soft_muon-faa60c1e7c9b46cbaa9d511c7756b4d4",
+      "title": "#20 Soft Muon",
+      "description": "Setup from #16 plus PowerCool and interpolation between Contra-Muon and Soft-Muon",
+      "record_number": 20,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260509_contra_soft_muon/03c36e81-e2e5-4916-bf16-0141999b1dbb.txt",
+      "trace_details": "20260509_contra_soft_muon · AdamW + Muon · 3,040 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260509_contra_soft_muon-faa60c1e7c9b46cbaa9d511c7756b4d4.json"
+    },
+    {
+      "id": "20260513_shampoo_1_4_power-806ac55a46e64c1f86c9f87f278b966a",
+      "title": "#21 Shampoo 1/4",
+      "description": "Shampoo with lr=.0015, wd=.2, betas=(.9, .95), precondition_frequency=5, and matrix power=-1/4",
+      "record_number": 21,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260513_shampoo_1_4_power/503575c5-6dde-425a-b461-2df4d99db974.txt",
+      "trace_details": "20260513_shampoo_1_4_power · AdamW + DistributedShampoo · 4,150 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260513_shampoo_1_4_power-806ac55a46e64c1f86c9f87f278b966a.json"
+    },
+    {
+      "id": "20260508_muown-39939a1ae20647af90f960d44d5119ba",
+      "title": "#23 Muown",
+      "description": "Muown: Muon with integrated row-norm control, direction_scale=.2, PowerCool, and a V-norm schedule",
+      "record_number": 23,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260508_muown/a26c8aa2-993d-443f-b931-845724d07015.txt",
+      "trace_details": "20260508_muown · AdamW + MuownDP · 3,090 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260508_muown-39939a1ae20647af90f960d44d5119ba.json"
+    },
+    {
+      "id": "20260509_contra_muon_split_cooldown-4d7156ea789441e5905877da31ebfa21",
+      "title": "#24 Contra Cooldown",
+      "description": "Setup from #11 with split learning-rate cooldowns for aux Adam and matrix parameters",
+      "record_number": 24,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260509_contra_muon_split_cooldown/c1af0bd1-6999-44d1-a618-3d1234ea32f0.txt",
+      "trace_details": "20260509_contra_muon_split_cooldown · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260509_contra_muon_split_cooldown-4d7156ea789441e5905877da31ebfa21.json"
+    },
+    {
+      "id": "20260511_klsoap_h_lr_power_decay-ef1fdeed4bc349e490061cb66492d448",
+      "title": "#25 KLSOAP Decay",
+      "description": "Setup from #19 KL-SOAP-H plus PowerCool with nonzero Adam and KL-SOAP learning-rate floors",
+      "record_number": 25,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260511_klsoap_h_lr_power_decay/01906576-8b3d-4bd2-a73f-23997f602ec1.txt",
+      "trace_details": "20260511_klsoap_h_lr_power_decay · AdamW + KLSOAPH · 3,040 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260511_klsoap_h_lr_power_decay-ef1fdeed4bc349e490061cb66492d448.json"
+    },
+    {
+      "id": "20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c",
+      "title": "#26 SinkSOAP",
+      "description": "SinkSOAP: Gram-Sinkhorn SOAP-style preconditioning with a NorMuon postconditioner, lr=.04 wd=.025",
+      "record_number": 26,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260514_sinksoap/d0155dd0-f77d-48a9-8eb4-453f894b9476.txt",
+      "trace_details": "20260514_sinksoap · AdamW + SinkSOAP · 3,125 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c.json"
+    },
+    {
+      "id": "20260519_dynmuon-25f9a2132d524a10889bd724d64f080e",
+      "title": "#28 DynMuon",
+      "description": "DynMuon with matrix power scheduled from .25 to -.25, τ=.04, w=.04, lr=.02, and wd=.025",
+      "record_number": 28,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260519_dynmuon/50172610-d038-4f90-9a12-b9a0853f035d.txt",
+      "trace_details": "20260519_dynmuon · AdamW + DynMuon · 3,200 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260519_dynmuon-25f9a2132d524a10889bd724d64f080e.json"
+    },
+    {
+      "id": "20260511_dampen_radial_gradient_component-f3b60ab3c90c4e9b9ee9bcf5aede58c8",
+      "title": "#29 Radial Dampen",
+      "description": "Setup from #20 plus a radial brake that dampens outward radial updates before the u/w floor",
+      "record_number": 29,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260511_dampen_radial_gradient_component/00882c75-914d-4340-8e0b-dcffcb18b73d.txt",
+      "trace_details": "20260511_dampen_radial_gradient_component · AdamW + Muon · 3,020 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260511_dampen_radial_gradient_component-f3b60ab3c90c4e9b9ee9bcf5aede58c8.json"
+    },
+    {
+      "id": "20260514_aurora_proj_pruned_extended_contra-d356ad8218c442b085ec0453bfae2a23",
+      "title": "#30 Aurora Contra",
+      "description": "Setup from #29 plus Aurora row-balanced polar on wide MLP projection matrices, an extended Contra-Muon ramp, and Muon momentum scheduling",
+      "record_number": 30,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260514_aurora_proj_pruned_extended_contra/d198124d-5e7f-4743-a683-0eb936a40dbe.txt",
+      "trace_details": "20260514_aurora_proj_pruned_extended_contra · AdamW + Muon · 3,020 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260514_aurora_proj_pruned_extended_contra-d356ad8218c442b085ec0453bfae2a23.json"
+    },
+    {
+      "id": "20260515_contranormuown-7474b4940a26466e92c17978f1fea461",
+      "title": "#31 Contra Muown",
+      "description": "Setup from #23 Muown plus NorMuon and Contra-Muon",
+      "record_number": 31,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260515_contranormuown/0f117ad6-2342-40f0-9e00-20cec55f6021.txt",
+      "trace_details": "20260515_contranormuown · AdamW + MuownDP · 3,000 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260515_contranormuown-7474b4940a26466e92c17978f1fea461.json"
+    },
+    {
+      "id": "20260518_soda_fade_3000_n9-eebab4e66a004e6b994b11a80791617b",
+      "title": "#32 SODA Fade",
+      "description": "Setup from #20 plus a SODA-style hidden-matrix anchor correction toward initialization, faded out from step 2000 to 2750",
+      "record_number": 32,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260518_soda_fade_3000_n9/README.md",
+      "trace_details": "20260518_soda_fade_3000_n9 · AdamW + Muon · 3,040 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260518_soda_fade_3000_n9-eebab4e66a004e6b994b11a80791617b.json"
+    },
+    {
+      "id": "20260527_psgd-39ea6ba478c547cda8d70eda96e94309",
+      "title": "#33 PSGD",
+      "description": "PSGD with Kronecker whitening preconditioners, Hyperball, linear learning-rate decay, precond_lr=1.0, and beta=.95",
+      "record_number": 33,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260527_psgd/README.md",
+      "trace_details": "20260527_psgd · AdamW + PSGDKron · 3,400 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260527_psgd-39ea6ba478c547cda8d70eda96e94309.json"
+    },
+    {
+      "id": "20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f",
+      "title": "#34 RRE Extrapolation",
+      "description": "Setup from #30 plus late capped RRE vector extrapolation from step 2820 to 2925",
+      "record_number": 34,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260520_rre_extrapolation_pr300_2925/README.md",
+      "trace_details": "20260520_rre_extrapolation_pr300_2925 · AdamW + Muon · 2,925 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f.json"
+    },
+    {
+      "id": "20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c",
+      "title": "#36 Tuned Baseline",
+      "description": "Tuned baseline Muon plus aux AdamW hyperparameters",
+      "record_number": 36,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260610_tuned_baseline_3250/263ea3c4-2b13-4adf-8a71-0410386b20e1.txt",
+      "trace_details": "20260610_tuned_baseline_3250 · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c.json"
+    },
+    {
+      "id": "20260611_muonh_tuned_aux_3250-75e68aea378248af952c527abace21c9",
+      "title": "#37 MuonH Tuned",
+      "description": "MuonH with auxiliary Adam hyperparameters grafted from the tuned baseline in #36 and retuned for MuonH",
+      "record_number": 37,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260611_muonh_tuned_aux_3250/f6649181-6de2-4d67-b243-2b18adb9d594.txt",
+      "trace_details": "20260611_muonh_tuned_aux_3250 · AdamW + MuonH · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260611_muonh_tuned_aux_3250-75e68aea378248af952c527abace21c9.json"
+    },
+    {
+      "id": "20260520_tail_refinterp_2900-5ef8e31716a540bba70491b3678a9956",
+      "title": "#38 Tail RefInterp",
+      "description": "Setup from #30 with final update-EMA readout, an extended Contra-Muon transition, Tempered-Polar, and ramped radial brake and u/w floor",
+      "record_number": 38,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260520_tail_refinterp_2900/refinterp_2900_seed0.txt",
+      "trace_details": "20260520_tail_refinterp_2900 · AdamW + Muon · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260520_tail_refinterp_2900-5ef8e31716a540bba70491b3678a9956.json"
+    },
+    {
+      "id": "20260522_ema_nesterov_muon-266d25058a994dfda8231abbad894c8e",
+      "title": "#39 Muon Nesterov",
+      "description": "Setup from #12 wrapped in EMA-Nesterov with lookahead EMA γ=.99 and scheduled lookahead β=.6·lr/max_lr",
+      "record_number": 39,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260522_ema_nesterov_muon/4d9e83d4-4e3f-43d3-8aae-e3a9031586be.txt",
+      "trace_details": "20260522_ema_nesterov_muon · EMA_Nesterov · 3,150 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260522_ema_nesterov_muon-266d25058a994dfda8231abbad894c8e.json"
+    },
+    {
+      "id": "20260522_ema_nesterov_aurora_proj-37388d161c1a4f7696cffcc43f9c20fe",
+      "title": "#40 Aurora Nesterov",
+      "description": "Setup from #30 wrapped in EMA-Nesterov with lookahead EMA γ=.99 and scheduled lookahead β=.3·lr/max_lr",
+      "record_number": 40,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260522_ema_nesterov_aurora_proj/345b51b2-38ee-4a78-af2c-bb96cb68470d.txt",
+      "trace_details": "20260522_ema_nesterov_aurora_proj · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260522_ema_nesterov_aurora_proj-37388d161c1a4f7696cffcc43f9c20fe.json"
+    },
+    {
+      "id": "20260523_circuit_muon-4ffee47f70b944db82297f14ce784c1d",
+      "title": "#41 Circuit Muon",
+      "description": "Setup from #40 plus Circuit-Muon coupling on attention V/O pairs",
+      "record_number": 41,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260523_circuit_muon/README.md",
+      "trace_details": "20260523_circuit_muon · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260523_circuit_muon-4ffee47f70b944db82297f14ce784c1d.json"
+    },
+    {
+      "id": "20260525_aurora_ema_ref-00d59e6d6776414c871add683a7f92b2",
+      "title": "#42 Aurora EMA",
+      "description": "Setup from #40 with zero-initialized biases and fixed reference interpolation from step 2850 onward",
+      "record_number": 42,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260525_aurora_ema_ref/README.md",
+      "trace_details": "20260525_aurora_ema_ref · EMA_Nesterov · 2,860 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260525_aurora_ema_ref-00d59e6d6776414c871add683a7f92b2.json"
+    },
+    {
+      "id": "20260529_tail_phase_readout_2850-1be83fb9ff2f40248973ed8a1838a38b",
+      "title": "#43 Tail Readout",
+      "description": "Setup from #41 plus fixed late trajectory transforms and an 8% final readout toward the step-2400 non-embedding anchor",
+      "record_number": 43,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260529_tail_phase_readout_2850/tail_phase_readout_2850_seed0.txt",
+      "trace_details": "20260529_tail_phase_readout_2850 · EMA_Nesterov · 2,850 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260529_tail_phase_readout_2850-1be83fb9ff2f40248973ed8a1838a38b.json"
+    },
+    {
+      "id": "20260609_soap_f1_auxb2_clean-d0e85a5c928d4d6fbc9a3fd6d8032cf6",
+      "title": "#44 SOAP-F1 Clean",
+      "description": "Setup from #41 plus SOAP-Muon on all hidden matrices with precondition_frequency=1, tuned auxiliary β₂ values, and a longer Muon cooldown",
+      "record_number": 44,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260609_soap_f1_auxb2_clean/H100_ff29b392-e7b7-453e-b9d5-a7dfe0605dd0.txt",
+      "trace_details": "20260609_soap_f1_auxb2_clean · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260609_soap_f1_auxb2_clean-d0e85a5c928d4d6fbc9a3fd6d8032cf6.json"
+    },
+    {
+      "id": "20260611_tailema_2720_submission-a3bd328e76be41c49b873e35badc8952",
+      "title": "#45 TailEMA 2720",
+      "description": "Setup from #44 plus a final-step blend toward an EMA with a 150-step horizon",
+      "record_number": 45,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260611_tailema_2720_submission/8878c81f-5f73-461f-a41e-c0887e15c1ca.txt",
+      "trace_details": "20260611_tailema_2720_submission · EMA_Nesterov · 2,720 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260611_tailema_2720_submission-a3bd328e76be41c49b873e35badc8952.json"
+    },
+    {
+      "id": "20260619_cwd_rowfloor_tailema-6f0b2f934a3e438da43f04dd05736b75",
+      "title": "#46 CWD RowFloor TailEMA",
+      "description": "Setup from #45 plus RowUpdateFloor per-output-row u/w floor and Cautious Weight Decay",
+      "record_number": 46,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260619_cwd_rowfloor_tailema/A40_seed0_5c87fa44-7ca7-4d54-971d-d952f9b15792.txt",
+      "trace_details": "20260619_cwd_rowfloor_tailema · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260619_cwd_rowfloor_tailema-6f0b2f934a3e438da43f04dd05736b75.json"
     }
   ]
 }

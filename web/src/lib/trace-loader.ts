@@ -2,6 +2,9 @@ export interface TraceManifestEntry {
 	id?: string;
 	title: string;
 	description: string;
+	record_number?: number;
+	record_url?: string;
+	trace_details?: string;
 	trace_url: string;
 }
 

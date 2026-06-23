@@ -1,0 +1,212 @@
+{
+  "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5": {
+    "number": 1,
+    "description": "Muon with aux Adam, lr=.02 wd=.01",
+    "log_path": "results/7b8270c5-a9cd-4a73-b7d8-5d86a2d1e428.txt"
+  },
+  "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833": {
+    "number": 3,
+    "description": "Muon with aux Adam, lr=.025 wd=.0125",
+    "log_path": "results/311d7833-8dfc-43ea-a55c-fd313a11c4a8.txt"
+  },
+  "20260430_adamh": {
+    "number": 4,
+    "description": "AdamH with per-module initialization, lr=.018, betas=(.9, .95), full matrix cooldown, and aux cooldown_frac=.4",
+    "log_path": "results/20260430_adamh/7533dd87-107f-4a4f-8229-acbec0fb00ac.txt"
+  },
+  "20260430_muonh": {
+    "number": 5,
+    "description": "MuonH (Muon + hyperball constraint on hidden matrices) with per-module initialization, lr=.018, full matrix cooldown, and aux cooldown_frac=.4",
+    "log_path": "results/20260430_muonh/9319c798-6643-464a-b407-b05468e468f5.txt"
+  },
+  "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938": {
+    "number": 6,
+    "description": "Muon with aux Adam, lr=.025 wd=.025",
+    "log_path": "results/51ece938-03c5-4343-8dcc-3f3336b07008.txt"
+  },
+  "20260501_muonsq": {
+    "number": 7,
+    "description": "Muon² with aux Adam, lr=.10 wd=.0125 β₂=.95 ε=1e-10",
+    "log_path": "results/20260501_muonsq/bb903816-ea27-4f5f-8028-c963d38c6a7f.txt"
+  },
+  "20260430_normuonh": {
+    "number": 8,
+    "description": "NorMuonH: Muon direction with row/column variance preconditioning and a hyperball constraint on hidden matrices",
+    "log_path": "results/20260430_normuonh/f45b5dcf-16bb-4e83-b5c7-4ef4981f0e9f.txt"
+  },
+  "20260501_skylight001": {
+    "number": 9,
+    "description": "NorMuon with aux Adam and a u/w floor that clamps the update-to-weight norm ratio to 0.35, lr=.0375",
+    "log_path": "results/20260501_skylight001/f78af80a-2ba3-4cf7-b9f7-e6e56ff2c54d.txt"
+  },
+  "20260503_normuon": {
+    "number": 10,
+    "description": "NorMuon lr=.035 wd=.025, ending 50 steps early",
+    "log_path": "results/20260503_normuon/e0d0185f-ccb8-426d-8265-a4e762ec69f6.txt"
+  },
+  "20260501_contra_muon": {
+    "number": 11,
+    "description": "Setup from #9 plus the Contra-Muon technique",
+    "log_path": "results/20260501_contra_muon/08cd60f9-99e2-4e28-b1ac-19136dd42a05.txt"
+  },
+  "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a": {
+    "number": 12,
+    "description": "Muon with aux Adam, lr=.035 wd=.025 following #10, ending 25 steps early following #8",
+    "log_path": "results/1bd8db7a-f3a3-4195-856d-cab7e0816443.txt"
+  },
+  "20260504_muloco_normuonh": {
+    "number": 13,
+    "description": "NorMuonH wrapped in MuLoCo-style outer Nesterov SGD over all trainable parameters",
+    "log_path": "results/20260504_muloco_normuonh/7fba9434-58d8-4166-b6a7-d62ef8d17e5d.txt"
+  },
+  "20260504_contra_muon_mlp_soapish": {
+    "number": 14,
+    "description": "Setup from #11 plus SOAP preconditioning before Muon orthogonalization for the MLP weights",
+    "log_path": "results/20260504_contra_muon_mlp_soapish/0248394b-0d6c-4133-9ff7-e7ff2763cdd9.txt"
+  },
+  "20260505_newton_muon": {
+    "number": 15,
+    "description": "Newton-Muon with activation-covariance right preconditioning refreshed every 64 steps and tuned learning rates and weight decay",
+    "log_path": "results/20260505_newton_muon/6fb302c7-d271-491b-906f-75cd6ec72075.txt"
+  },
+  "20260506_trustlight": {
+    "number": 16,
+    "description": "Setup from #14 plus SOAP preconditioning for attention with a trust gate",
+    "log_path": "results/20260506_trustlight/fake_log_from_seed0.txt"
+  },
+  "20260505_aurora": {
+    "number": 17,
+    "description": "Setup from #11 plus Aurora",
+    "log_path": "results/20260505_aurora/298f02bc-dbb4-4661-9ad8-f6429d532873.txt"
+  },
+  "20260507_pmuon": {
+    "number": 18,
+    "description": "PMuon: Muon with bilateral streaming covariance power preconditioning, lr=.035 wd=.025 γ=.3 β=.95",
+    "log_path": "results/20260507_pmuon/54fc0541-7a62-4772-a8f8-d3a46ad10dba.txt"
+  },
+  "20260508_klsoap_h_clean_tuple_sweep": {
+    "number": 19,
+    "description": "Setup from #8 with NorMuonH replaced by KL-SOAP with hyperball optimization and precondition_frequency=1",
+    "log_path": "results/20260508_klsoap_h_clean_tuple_sweep/b1095_sh090/klsoap-h-b1095_sh090-K3125-seed-1.full.txt"
+  },
+  "20260509_contra_soft_muon": {
+    "number": 20,
+    "description": "Setup from #16 plus PowerCool and interpolation between Contra-Muon and Soft-Muon",
+    "log_path": "results/20260509_contra_soft_muon/03c36e81-e2e5-4916-bf16-0141999b1dbb.txt"
+  },
+  "20260513_shampoo_1_4_power": {
+    "number": 21,
+    "description": "Shampoo with lr=.0015, wd=.2, betas=(.9, .95), precondition_frequency=5, and matrix power=-1/4",
+    "log_path": "results/20260513_shampoo_1_4_power/503575c5-6dde-425a-b461-2df4d99db974.txt"
+  },
+  "20260508_muown": {
+    "number": 23,
+    "description": "Muown: Muon with integrated row-norm control, direction_scale=.2, PowerCool, and a V-norm schedule",
+    "log_path": "results/20260508_muown/a26c8aa2-993d-443f-b931-845724d07015.txt"
+  },
+  "20260509_contra_muon_split_cooldown": {
+    "number": 24,
+    "description": "Setup from #11 with split learning-rate cooldowns for aux Adam and matrix parameters",
+    "log_path": "results/20260509_contra_muon_split_cooldown/c1af0bd1-6999-44d1-a618-3d1234ea32f0.txt"
+  },
+  "20260511_klsoap_h_lr_power_decay": {
+    "number": 25,
+    "description": "Setup from #19 KL-SOAP-H plus PowerCool with nonzero Adam and KL-SOAP learning-rate floors",
+    "log_path": "results/20260511_klsoap_h_lr_power_decay/01906576-8b3d-4bd2-a73f-23997f602ec1.txt"
+  },
+  "20260514_sinksoap": {
+    "number": 26,
+    "description": "SinkSOAP: Gram-Sinkhorn SOAP-style preconditioning with a NorMuon postconditioner, lr=.04 wd=.025",
+    "log_path": "results/20260514_sinksoap/d0155dd0-f77d-48a9-8eb4-453f894b9476.txt"
+  },
+  "20260519_dynmuon": {
+    "number": 28,
+    "description": "DynMuon with matrix power scheduled from .25 to -.25, τ=.04, w=.04, lr=.02, and wd=.025",
+    "log_path": "results/20260519_dynmuon/50172610-d038-4f90-9a12-b9a0853f035d.txt"
+  },
+  "20260511_dampen_radial_gradient_component": {
+    "number": 29,
+    "description": "Setup from #20 plus a radial brake that dampens outward radial updates before the u/w floor",
+    "log_path": "results/20260511_dampen_radial_gradient_component/00882c75-914d-4340-8e0b-dcffcb18b73d.txt"
+  },
+  "20260514_aurora_proj_pruned_extended_contra": {
+    "number": 30,
+    "description": "Setup from #29 plus Aurora row-balanced polar on wide MLP projection matrices, an extended Contra-Muon ramp, and Muon momentum scheduling",
+    "log_path": "results/20260514_aurora_proj_pruned_extended_contra/d198124d-5e7f-4743-a683-0eb936a40dbe.txt"
+  },
+  "20260515_contranormuown": {
+    "number": 31,
+    "description": "Setup from #23 Muown plus NorMuon and Contra-Muon",
+    "log_path": "results/20260515_contranormuown/0f117ad6-2342-40f0-9e00-20cec55f6021.txt"
+  },
+  "20260518_soda_fade_3000_n9": {
+    "number": 32,
+    "description": "Setup from #20 plus a SODA-style hidden-matrix anchor correction toward initialization, faded out from step 2000 to 2750",
+    "log_path": "results/20260518_soda_fade_3000_n9/README.md"
+  },
+  "20260527_psgd": {
+    "number": 33,
+    "description": "PSGD with Kronecker whitening preconditioners, Hyperball, linear learning-rate decay, precond_lr=1.0, and beta=.95",
+    "log_path": "results/20260527_psgd/README.md"
+  },
+  "20260520_rre_extrapolation_pr300_2925": {
+    "number": 34,
+    "description": "Setup from #30 plus late capped RRE vector extrapolation from step 2820 to 2925",
+    "log_path": "results/20260520_rre_extrapolation_pr300_2925/README.md"
+  },
+  "20260610_tuned_baseline_3250": {
+    "number": 36,
+    "description": "Tuned baseline Muon plus aux AdamW hyperparameters",
+    "log_path": "results/20260610_tuned_baseline_3250/263ea3c4-2b13-4adf-8a71-0410386b20e1.txt"
+  },
+  "20260611_muonh_tuned_aux_3250": {
+    "number": 37,
+    "description": "MuonH with auxiliary Adam hyperparameters grafted from the tuned baseline in #36 and retuned for MuonH",
+    "log_path": "results/20260611_muonh_tuned_aux_3250/f6649181-6de2-4d67-b243-2b18adb9d594.txt"
+  },
+  "20260520_tail_refinterp_2900": {
+    "number": 38,
+    "description": "Setup from #30 with final update-EMA readout, an extended Contra-Muon transition, Tempered-Polar, and ramped radial brake and u/w floor",
+    "log_path": "results/20260520_tail_refinterp_2900/refinterp_2900_seed0.txt"
+  },
+  "20260522_ema_nesterov_muon": {
+    "number": 39,
+    "description": "Setup from #12 wrapped in EMA-Nesterov with lookahead EMA γ=.99 and scheduled lookahead β=.6·lr/max_lr",
+    "log_path": "results/20260522_ema_nesterov_muon/4d9e83d4-4e3f-43d3-8aae-e3a9031586be.txt"
+  },
+  "20260522_ema_nesterov_aurora_proj": {
+    "number": 40,
+    "description": "Setup from #30 wrapped in EMA-Nesterov with lookahead EMA γ=.99 and scheduled lookahead β=.3·lr/max_lr",
+    "log_path": "results/20260522_ema_nesterov_aurora_proj/345b51b2-38ee-4a78-af2c-bb96cb68470d.txt"
+  },
+  "20260523_circuit_muon": {
+    "number": 41,
+    "description": "Setup from #40 plus Circuit-Muon coupling on attention V/O pairs",
+    "log_path": "results/20260523_circuit_muon/README.md"
+  },
+  "20260525_aurora_ema_ref": {
+    "number": 42,
+    "description": "Setup from #40 with zero-initialized biases and fixed reference interpolation from step 2850 onward",
+    "log_path": "results/20260525_aurora_ema_ref/README.md"
+  },
+  "20260529_tail_phase_readout_2850": {
+    "number": 43,
+    "description": "Setup from #41 plus fixed late trajectory transforms and an 8% final readout toward the step-2400 non-embedding anchor",
+    "log_path": "results/20260529_tail_phase_readout_2850/tail_phase_readout_2850_seed0.txt"
+  },
+  "20260609_soap_f1_auxb2_clean": {
+    "number": 44,
+    "description": "Setup from #41 plus SOAP-Muon on all hidden matrices with precondition_frequency=1, tuned auxiliary β₂ values, and a longer Muon cooldown",
+    "log_path": "results/20260609_soap_f1_auxb2_clean/H100_ff29b392-e7b7-453e-b9d5-a7dfe0605dd0.txt"
+  },
+  "20260611_tailema_2720_submission": {
+    "number": 45,
+    "description": "Setup from #44 plus a final-step blend toward an EMA with a 150-step horizon",
+    "log_path": "results/20260611_tailema_2720_submission/8878c81f-5f73-461f-a41e-c0887e15c1ca.txt"
+  },
+  "20260619_cwd_rowfloor_tailema": {
+    "number": 46,
+    "description": "Setup from #45 plus RowUpdateFloor per-output-row u/w floor and Cautious Weight Decay",
+    "log_path": "results/20260619_cwd_rowfloor_tailema/A40_seed0_5c87fa44-7ca7-4d54-971d-d952f9b15792.txt"
+  }
+}

@@ -8,7 +8,8 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		<div data-compare-content hidden>
 					<header class="compare-topbar">
 						<p class="compare-intro">
-							Parameter diagnostics for entries in the modded-nanoGPT optimization track.
+							Parameter diagnostics for entries in the
+							<a href="https://github.com/KellerJordan/modded-nanogpt/tree/master/records/track_3_optimization" target="_blank" rel="noreferrer">modded-nanoGPT optimization track</a>.
 						</p>
 						<div class="compare-filters" aria-label="Parameter averaging controls">
 							<details class="filter-menu" data-parameter-menu>
@@ -140,6 +141,19 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		line-height: 1.4;
 	}
 
+	.compare-intro a {
+		color: var(--ink);
+		text-decoration: underline;
+		text-decoration-color: var(--line-strong);
+		text-underline-offset: 3px;
+	}
+
+	.compare-intro a:hover,
+	.compare-intro a:focus-visible {
+		color: var(--accent);
+		text-decoration-color: currentColor;
+	}
+
 	.compare-filters {
 		display: flex;
 		gap: 8px;
@@ -156,7 +170,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 	.filter-menu summary {
 		position: relative;
 		min-height: 34px;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--line);
 		background: var(--paper);
 		padding: 8px 30px 7px 10px;
 		color: var(--ink);
@@ -185,7 +199,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 
 	.filter-menu[open] summary,
 	.filter-menu summary:hover {
-		border-color: var(--ink);
+		border-color: var(--line-strong);
 	}
 
 	.filter-menu[open] summary::after {
@@ -199,7 +213,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		right: 0;
 		z-index: 30;
 		width: 240px;
-		border: 1px solid var(--line-strong);
+		border: 1px solid var(--line);
 		background: var(--paper);
 		box-shadow: 0 12px 28px rgb(31 27 22 / 0.12);
 		padding: 5px;
@@ -280,6 +294,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 	}
 
 	.optimizer-slot {
+		position: relative;
 		display: flex;
 		gap: 6px;
 		align-items: center;
@@ -292,15 +307,6 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		color: var(--ink);
 	}
 
-	.optimizer-index {
-		flex: 0 0 auto;
-		width: 18px;
-		color: var(--optimizer-color, var(--accent));
-		font-family: var(--mono);
-		font-size: 11px;
-		text-align: right;
-	}
-
 	.optimizer-color {
 		flex: 0 0 auto;
 		width: 9px;
@@ -308,14 +314,69 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		border: 1px solid rgb(31 27 22 / 0.18);
 	}
 
-	.optimizer-label {
+	.optimizer-info {
+		min-width: 0;
+		padding: 0;
+	}
+
+	.optimizer-info > summary {
+		display: block;
 		min-width: 0;
 		overflow: hidden;
+		margin-left: 6px;
 		color: var(--ink);
 		font-family: var(--mono);
 		font-size: 11px;
+		list-style: none;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+		cursor: pointer;
+	}
+
+	.optimizer-info > summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.optimizer-info > summary:hover,
+	.optimizer-info[open] > summary {
+		color: var(--accent);
+	}
+
+	.optimizer-info-panel {
+		position: absolute;
+		top: calc(100% + 7px);
+		left: -4px;
+		z-index: 40;
+		width: min(390px, calc(100vw - 48px));
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		box-shadow: 0 14px 32px rgb(31 27 22 / 0.14);
+		padding: 12px 14px;
+		color: var(--ink);
+		font-family: var(--sans);
+		white-space: normal;
+	}
+
+	.optimizer-info-title {
+		margin-bottom: 7px;
+		font-family: var(--mono);
+		font-size: 12px;
+		font-weight: 500;
+	}
+
+	.optimizer-info-description {
+		margin: 0;
+		font-size: 12px;
+		line-height: 1.45;
+	}
+
+	.optimizer-info-link {
+		display: inline-block;
+		margin-top: 9px;
+		color: var(--accent);
+		font-size: 11px;
+		text-decoration: underline;
+		text-underline-offset: 3px;
 	}
 
 	.optimizer-picker {
@@ -388,7 +449,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 	.optimizer-menu .optimizer-option {
 		display: flex;
 		gap: 8px;
-		align-items: center;
+		align-items: flex-start;
 		width: 100%;
 		border: 0;
 		border-right: 1px solid var(--line);
@@ -397,7 +458,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		color: var(--ink);
 		padding: 9px 10px;
 		font-family: var(--mono);
-		font-size: 10px;
+		font-size: 12px;
 		text-align: left;
 		cursor: pointer;
 	}
@@ -417,6 +478,24 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
+	}
+
+	.optimizer-option-copy {
+		display: grid;
+		gap: 3px;
+		min-width: 0;
+	}
+
+	.optimizer-option-description {
+		display: -webkit-box;
+		overflow: hidden;
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 10px;
+		font-weight: 400;
+		line-height: 1.35;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
 	}
 
 	.optimizer-search {
@@ -723,6 +802,19 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		font-size: 10px;
 	}
 
+	.chart-tooltip-entry {
+		transition: color 120ms ease, opacity 120ms ease;
+	}
+
+	.chart-tooltip-entry.is-focused {
+		font-weight: 500;
+	}
+
+	.chart-tooltip-entry.is-muted {
+		color: var(--soft);
+		opacity: 0.55;
+	}
+
 	@media (max-width: 680px) {
 		.compare-shell {
 			padding: 10px 18px 0;
@@ -966,16 +1058,40 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 	function renderOptimizerSlots() {
 		optimizerSlotsRoot.replaceChildren(
 			...selectedOptimizerSlots.map((name, index) => {
+				const entry = manifestEntries.find((candidate) => candidate.title === name);
 				const slot = document.createElement('div');
 				slot.className = 'optimizer-slot';
 				slot.style.setProperty('--optimizer-color', colorForOptimizer(name));
-				const number = document.createElement('span');
-				number.className = 'optimizer-index';
-				number.textContent = String(index + 1);
-				const label = document.createElement('span');
-				label.className = 'optimizer-label';
-				label.textContent = name;
-				slot.title = manifestEntries.find((entry) => entry.title === name)?.description ?? '';
+				const info = document.createElement('details');
+				info.className = 'optimizer-info';
+				const summary = document.createElement('summary');
+				summary.textContent = name;
+				const panel = document.createElement('div');
+				panel.className = 'optimizer-info-panel';
+				const title = document.createElement('div');
+				title.className = 'optimizer-info-title';
+				title.textContent = name;
+				const description = document.createElement('p');
+				description.className = 'optimizer-info-description';
+				description.textContent = entry?.description ?? 'No record description available.';
+				panel.append(title, description);
+				if (entry?.record_url) {
+					const link = document.createElement('a');
+					link.className = 'optimizer-info-link';
+					link.href = entry.record_url;
+					link.target = '_blank';
+					link.rel = 'noreferrer';
+					link.textContent = 'View upstream log ↗';
+					panel.append(link);
+				}
+				info.append(summary, panel);
+				info.addEventListener('toggle', () => {
+					if (!info.open) return;
+					for (const other of root.querySelectorAll('.optimizer-info[open]')) {
+						if (other !== info) other.removeAttribute('open');
+					}
+					closeOptimizerMenu();
+				});
 				const remove = document.createElement('button');
 				remove.type = 'button';
 				remove.className = 'optimizer-remove';
@@ -986,7 +1102,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 					selectedOptimizerSlots.splice(index, 1);
 					void render();
 				});
-				slot.append(number, label, remove);
+				slot.append(info, remove);
 				return slot;
 			}),
 		);
@@ -1010,7 +1126,12 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		options.className = 'optimizer-options';
 		const renderOptions = () => {
 			const query = search.value.trim().toLowerCase();
-			const matches = query ? available.filter((name) => name.toLowerCase().includes(query)) : available;
+			const matches = query
+				? available.filter((name) => {
+					const entry = manifestEntries.find((candidate) => candidate.title === name);
+					return `${name} ${entry?.description ?? ''} ${entry?.trace_details ?? ''}`.toLowerCase().includes(query);
+				})
+				: available;
 			if (!matches.length) {
 				const empty = document.createElement('div');
 				empty.className = 'optimizer-search-empty';
@@ -1019,17 +1140,23 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 				return;
 			}
 			options.replaceChildren(...matches.map((name) => {
+				const entry = manifestEntries.find((candidate) => candidate.title === name);
 				const option = document.createElement('button');
 				option.type = 'button';
 				option.className = 'optimizer-option';
 				const swatch = document.createElement('span');
 				swatch.className = 'optimizer-color';
 				swatch.style.background = colorForOptimizer(name);
+				const copy = document.createElement('span');
+				copy.className = 'optimizer-option-copy';
 				const label = document.createElement('span');
 				label.className = 'optimizer-option-name';
 				label.textContent = name;
-				option.title = manifestEntries.find((entry) => entry.title === name)?.description ?? '';
-				option.append(swatch, label);
+				const description = document.createElement('span');
+				description.className = 'optimizer-option-description';
+				description.textContent = entry?.description ?? '';
+				copy.append(label, description);
+				option.append(swatch, copy);
 				option.addEventListener('click', () => {
 					selectedOptimizerSlots.push(name);
 					closeOptimizerMenu();
@@ -1194,6 +1321,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 		const [yMin, yMax] = metricDomain(spec);
 		const visibleSteps = runs.flatMap((entry) => entry.points.filter((point) => Number.isFinite(point.value)).map((point) => point.step));
 		const lastVisibleStep = visibleSteps.length ? Math.max(...visibleSteps) : null;
+		let focusedSeriesName = null;
 		chart.setOption({
 			animation: false,
 			grid: { left: 12, right: 12, top: 15, bottom: 35, containLabel: true },
@@ -1205,7 +1333,7 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 				padding: [8, 10],
 				textStyle: { color: '#1f1b16', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 11 },
 				extraCssText: 'box-shadow: 0 8px 22px rgba(31,27,22,0.12);',
-				formatter: (items) => formatTooltip(items, useLogScale),
+				formatter: (items) => formatTooltip(items, useLogScale, focusedSeriesName),
 				axisPointer: { type: 'line', lineStyle: { color: 'rgba(111, 103, 92, 0.45)', width: 1 } },
 			},
 			xAxis: {
@@ -1258,24 +1386,42 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 				lineStyle: { color: entry.color, width: 2, cap: 'round', join: 'round' },
 				itemStyle: { color: entry.color },
 				emphasis: { focus: 'series', lineStyle: { width: 3 } },
+				blur: { lineStyle: { opacity: 0.16 } },
 				data: entry.points.map((point) => ({
 					value: [point.step, point.value, point.raw, point.count],
 				})),
 			})),
 		});
+		const refreshFocusedTooltip = (params, name) => {
+			focusedSeriesName = name;
+			if (Number.isInteger(params.dataIndex)) {
+				chart.dispatchAction({ type: 'showTip', seriesIndex: params.seriesIndex, dataIndex: params.dataIndex });
+			}
+		};
+		chart.on('mouseover', { seriesType: 'line' }, (params) => refreshFocusedTooltip(params, params.seriesName));
+		chart.on('mouseout', { seriesType: 'line' }, (params) => refreshFocusedTooltip(params, null));
 	}
 
-	function formatTooltip(items, useLogScale) {
+	function formatTooltip(items, useLogScale, focusedSeriesName = null) {
 		const entries = Array.isArray(items) ? items : [items];
 		if (!entries.length) return '';
 		const step = entries[0]?.value?.[0];
 		const lines = [`<div class="chart-tooltip-step">step ${escapeHtml(String(step))}</div>`];
-		for (const item of entries) {
-			const plotted = item?.value?.[1];
-			if (!Number.isFinite(plotted)) continue;
-			const raw = item.value[2] ?? (useLogScale ? 10 ** plotted : plotted);
+		const rankedEntries = entries
+			.map((item) => {
+				const plotted = item?.value?.[1];
+				if (!Number.isFinite(plotted)) return null;
+				return { item, raw: item.value[2] ?? (useLogScale ? 10 ** plotted : plotted) };
+			})
+			.filter(Boolean)
+			.sort((left, right) => right.raw - left.raw || left.item.seriesName.localeCompare(right.item.seriesName));
+		for (const { item, raw } of rankedEntries) {
 			const count = item.value[3] ?? 0;
-			lines.push(`<div><span style="color:${item.color}">●</span> ${escapeHtml(item.seriesName)} <strong>${escapeHtml(format(raw))}</strong> <span style="color:#6f675c">· ${count} params</span></div>`);
+			const isFocused = item.seriesName === focusedSeriesName;
+			const isMuted = focusedSeriesName !== null && !isFocused;
+			const className = `chart-tooltip-entry${isFocused ? ' is-focused' : ''}${isMuted ? ' is-muted' : ''}`;
+			const markerColor = isMuted ? '#a79e91' : item.color;
+			lines.push(`<div class="${className}"><span style="color:${markerColor}">●</span> ${escapeHtml(item.seriesName)} <strong>${escapeHtml(format(raw))}</strong> <span style="color:${isMuted ? '#a79e91' : '#6f675c'}">· ${count} params</span></div>`);
 		}
 		return lines.join('');
 	}
@@ -1315,6 +1461,9 @@ const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.
 	document.addEventListener('click', (event) => {
 		for (const definition of root?.querySelectorAll('.metric-definition[open]') ?? []) {
 			if (!definition.contains(event.target)) definition.removeAttribute('open');
+		}
+		for (const info of root?.querySelectorAll('.optimizer-info[open]') ?? []) {
+			if (!info.contains(event.target)) info.removeAttribute('open');
 		}
 		if (!root?.contains(event.target)) {
 			closeOptimizerMenu();
