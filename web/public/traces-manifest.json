@@ -1,0 +1,256 @@
+{
+  "traces": [
+    {
+      "id": "20260430_muonh-82877e98065047e793c1778066611d8e",
+      "title": "MuonH",
+      "description": "20260430_muonh · AdamW + MuonH · 3,325 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260430_muonh-82877e98065047e793c1778066611d8e.json"
+    },
+    {
+      "id": "20260430_normuonh-62494bc74f2f4637b18ecd60ddace7d5",
+      "title": "NorMuonH",
+      "description": "20260430_normuonh · AdamW + NorMuonH · 3,275 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260430_normuonh-62494bc74f2f4637b18ecd60ddace7d5.json"
+    },
+    {
+      "id": "20260501_contra_muon-3ac51b9735c646a29bbb12bb26827d8f",
+      "title": "Contra Muon",
+      "description": "20260501_contra_muon · AdamW + Muon · 3,225 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260501_contra_muon-3ac51b9735c646a29bbb12bb26827d8f.json"
+    },
+    {
+      "id": "20260501_muonsq-0c36a14bc9874bc09dbc267e26929b6d",
+      "title": "MuonSq",
+      "description": "20260501_muonsq · AdamW + MuonSq · 3,325 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260501_muonsq-0c36a14bc9874bc09dbc267e26929b6d.json"
+    },
+    {
+      "id": "20260501_skylight001-733a9a1a4c1f478c8063da9d26c5c748",
+      "title": "Skylight",
+      "description": "20260501_skylight001 · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260501_skylight001-733a9a1a4c1f478c8063da9d26c5c748.json"
+    },
+    {
+      "id": "20260503_normuon-9b0724878ef24108b121757408d3ed24",
+      "title": "NorMuon",
+      "description": "20260503_normuon · AdamW + NorMuon · 3,300 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260503_normuon-9b0724878ef24108b121757408d3ed24.json"
+    },
+    {
+      "id": "20260504_contra_muon_mlp_soapish-268c9501b9734cda906e347e291be958",
+      "title": "Soapish MLP",
+      "description": "20260504_contra_muon_mlp_soapish · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260504_contra_muon_mlp_soapish-268c9501b9734cda906e347e291be958.json"
+    },
+    {
+      "id": "20260504_muloco_normuonh-87fceabc9949477ca089c7dab3bd0a93",
+      "title": "MuLoCo NorMuon",
+      "description": "20260504_muloco_normuonh · AdamW + NorMuonH · 3,240 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260504_muloco_normuonh-87fceabc9949477ca089c7dab3bd0a93.json"
+    },
+    {
+      "id": "20260505_aurora-1c6c79b9d67a4c629c28e15a3c2b07b2",
+      "title": "Aurora 25",
+      "description": "20260505_aurora · AdamW + Muon · 3,200 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260505_aurora-1c6c79b9d67a4c629c28e15a3c2b07b2.json"
+    },
+    {
+      "id": "20260505_newton_muon-6137485aa649441fb9ab41f54069d64d",
+      "title": "Newton Muon",
+      "description": "20260505_newton_muon · AdamW + Muon · 3,300 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260505_newton_muon-6137485aa649441fb9ab41f54069d64d.json"
+    },
+    {
+      "id": "20260506_trustlight-5b69d347726e4691932bde5ba1a7bef5",
+      "title": "Trustlight",
+      "description": "20260506_trustlight · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260506_trustlight-5b69d347726e4691932bde5ba1a7bef5.json"
+    },
+    {
+      "id": "20260507_pmuon-d98df50a502741fb90514c15ac12cec7",
+      "title": "PMuon",
+      "description": "20260507_pmuon · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260507_pmuon-d98df50a502741fb90514c15ac12cec7.json"
+    },
+    {
+      "id": "20260508_klsoap_h_clean_tuple_sweep-8b547fae18d3461ab910ea20c2961145",
+      "title": "KLSOAP-H Sweep",
+      "description": "20260508_klsoap_h_clean_tuple_sweep · AdamW + KLSOAPH · 3,125 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260508_klsoap_h_clean_tuple_sweep-8b547fae18d3461ab910ea20c2961145.json"
+    },
+    {
+      "id": "20260508_muown-39939a1ae20647af90f960d44d5119ba",
+      "title": "Muown",
+      "description": "20260508_muown · AdamW + MuownDP · 3,090 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260508_muown-39939a1ae20647af90f960d44d5119ba.json"
+    },
+    {
+      "id": "20260509_contra_muon_split_cooldown-4d7156ea789441e5905877da31ebfa21",
+      "title": "Contra Cooldown",
+      "description": "20260509_contra_muon_split_cooldown · AdamW + Muon · 3,175 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260509_contra_muon_split_cooldown-4d7156ea789441e5905877da31ebfa21.json"
+    },
+    {
+      "id": "20260509_contra_soft_muon-faa60c1e7c9b46cbaa9d511c7756b4d4",
+      "title": "Soft Muon",
+      "description": "20260509_contra_soft_muon · AdamW + Muon · 3,040 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260509_contra_soft_muon-faa60c1e7c9b46cbaa9d511c7756b4d4.json"
+    },
+    {
+      "id": "20260511_dampen_radial_gradient_component-f3b60ab3c90c4e9b9ee9bcf5aede58c8",
+      "title": "Radial Dampen",
+      "description": "20260511_dampen_radial_gradient_component · AdamW + Muon · 3,020 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260511_dampen_radial_gradient_component-f3b60ab3c90c4e9b9ee9bcf5aede58c8.json"
+    },
+    {
+      "id": "20260511_klsoap_h_lr_power_decay-ef1fdeed4bc349e490061cb66492d448",
+      "title": "KLSOAP Decay",
+      "description": "20260511_klsoap_h_lr_power_decay · AdamW + KLSOAPH · 3,040 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260511_klsoap_h_lr_power_decay-ef1fdeed4bc349e490061cb66492d448.json"
+    },
+    {
+      "id": "20260514_aurora_proj_pruned_extended_contra-d356ad8218c442b085ec0453bfae2a23",
+      "title": "Aurora Contra",
+      "description": "20260514_aurora_proj_pruned_extended_contra · AdamW + Muon · 3,020 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260514_aurora_proj_pruned_extended_contra-d356ad8218c442b085ec0453bfae2a23.json"
+    },
+    {
+      "id": "20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c",
+      "title": "SinkSOAP",
+      "description": "20260514_sinksoap · AdamW + SinkSOAP · 3,125 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c.json"
+    },
+    {
+      "id": "20260515_contranormuown-7474b4940a26466e92c17978f1fea461",
+      "title": "Contra Muown",
+      "description": "20260515_contranormuown · AdamW + MuownDP · 3,000 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260515_contranormuown-7474b4940a26466e92c17978f1fea461.json"
+    },
+    {
+      "id": "20260518_soda_fade_3000_n9-eebab4e66a004e6b994b11a80791617b",
+      "title": "SODA Fade",
+      "description": "20260518_soda_fade_3000_n9 · AdamW + Muon · 3,040 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260518_soda_fade_3000_n9-eebab4e66a004e6b994b11a80791617b.json"
+    },
+    {
+      "id": "20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f",
+      "title": "RRE Extrapolation",
+      "description": "20260520_rre_extrapolation_pr300_2925 · AdamW + Muon · 2,925 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f.json"
+    },
+    {
+      "id": "20260520_tail_refinterp_2900-5ef8e31716a540bba70491b3678a9956",
+      "title": "Tail RefInterp",
+      "description": "20260520_tail_refinterp_2900 · AdamW + Muon · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260520_tail_refinterp_2900-5ef8e31716a540bba70491b3678a9956.json"
+    },
+    {
+      "id": "20260522_ema_nesterov_aurora_proj-37388d161c1a4f7696cffcc43f9c20fe",
+      "title": "Aurora Nesterov",
+      "description": "20260522_ema_nesterov_aurora_proj · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260522_ema_nesterov_aurora_proj-37388d161c1a4f7696cffcc43f9c20fe.json"
+    },
+    {
+      "id": "20260522_ema_nesterov_muon-266d25058a994dfda8231abbad894c8e",
+      "title": "Muon Nesterov",
+      "description": "20260522_ema_nesterov_muon · EMA_Nesterov · 3,150 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260522_ema_nesterov_muon-266d25058a994dfda8231abbad894c8e.json"
+    },
+    {
+      "id": "20260523_circuit_muon-4ffee47f70b944db82297f14ce784c1d",
+      "title": "Circuit Muon",
+      "description": "20260523_circuit_muon · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260523_circuit_muon-4ffee47f70b944db82297f14ce784c1d.json"
+    },
+    {
+      "id": "20260525_aurora_ema_ref-00d59e6d6776414c871add683a7f92b2",
+      "title": "Aurora EMA",
+      "description": "20260525_aurora_ema_ref · EMA_Nesterov · 2,860 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260525_aurora_ema_ref-00d59e6d6776414c871add683a7f92b2.json"
+    },
+    {
+      "id": "20260527_psgd-39ea6ba478c547cda8d70eda96e94309",
+      "title": "PSGD",
+      "description": "20260527_psgd · AdamW + PSGDKron · 3,400 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260527_psgd-39ea6ba478c547cda8d70eda96e94309.json"
+    },
+    {
+      "id": "20260529_tail_phase_readout_2850-1be83fb9ff2f40248973ed8a1838a38b",
+      "title": "Tail Readout",
+      "description": "20260529_tail_phase_readout_2850 · EMA_Nesterov · 2,850 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260529_tail_phase_readout_2850-1be83fb9ff2f40248973ed8a1838a38b.json"
+    },
+    {
+      "id": "20260609_soap_f1_auxb2_clean-d0e85a5c928d4d6fbc9a3fd6d8032cf6",
+      "title": "SOAP-F1 Clean",
+      "description": "20260609_soap_f1_auxb2_clean · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260609_soap_f1_auxb2_clean-d0e85a5c928d4d6fbc9a3fd6d8032cf6.json"
+    },
+    {
+      "id": "20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c",
+      "title": "Tuned Baseline",
+      "description": "20260610_tuned_baseline_3250 · AdamW + Muon · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c.json"
+    },
+    {
+      "id": "20260611_muonh_tuned_aux_3250-75e68aea378248af952c527abace21c9",
+      "title": "MuonH Tuned",
+      "description": "20260611_muonh_tuned_aux_3250 · AdamW + MuonH · 3,250 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260611_muonh_tuned_aux_3250-75e68aea378248af952c527abace21c9.json"
+    },
+    {
+      "id": "20260611_tailema_2720_submission-a3bd328e76be41c49b873e35badc8952",
+      "title": "TailEMA 2720",
+      "description": "20260611_tailema_2720_submission · EMA_Nesterov · 2,720 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260611_tailema_2720_submission-a3bd328e76be41c49b873e35badc8952.json"
+    },
+    {
+      "id": "20260611_tailema_2730_submission-cc219ccf3f4645fa80f0bb121d5ab69c",
+      "title": "TailEMA 2730",
+      "description": "20260611_tailema_2730_submission · EMA_Nesterov · 2,730 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260611_tailema_2730_submission-cc219ccf3f4645fa80f0bb121d5ab69c.json"
+    },
+    {
+      "id": "20260619_cwd_rowfloor_tailema-6f0b2f934a3e438da43f04dd05736b75",
+      "title": "CWD RowFloor TailEMA",
+      "description": "20260619_cwd_rowfloor_tailema · EMA_Nesterov · 2,900 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/20260619_cwd_rowfloor_tailema-6f0b2f934a3e438da43f04dd05736b75.json"
+    },
+    {
+      "id": "aurora-05c61878cc7f43c6aeeb3f05daa2a55b",
+      "title": "Aurora 50",
+      "description": "aurora · AdamW + Muon · 3,200 completed steps · snapshots every 50 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/aurora-05c61878cc7f43c6aeeb3f05daa2a55b.json"
+    },
+    {
+      "id": "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5-92879940006040b9913ed2c811eb39d3",
+      "title": "MuonAdam E01",
+      "description": "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5 · AdamW + Muon · 3,600 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5-92879940006040b9913ed2c811eb39d3.json"
+    },
+    {
+      "id": "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833-1acd5755b48b4705b284a402ccc7525a",
+      "title": "MuonAdam E03",
+      "description": "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833 · AdamW + Muon · 3,500 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833-1acd5755b48b4705b284a402ccc7525a.json"
+    },
+    {
+      "id": "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938-db50b910e19d433a958ca35a7edd18a4",
+      "title": "MuonAdam E06",
+      "description": "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938 · AdamW + Muon · 3,375 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938-db50b910e19d433a958ca35a7edd18a4.json"
+    },
+    {
+      "id": "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a-315793dbd5d14f6abf38fe6780a5606a",
+      "title": "MuonAdam E12",
+      "description": "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a · AdamW + Muon · 3,350 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a-315793dbd5d14f6abf38fe6780a5606a.json"
+    },
+    {
+      "id": "top_level_478c0427-6e06bfc24fa24cafbe3486161070f644",
+      "title": "Top-Level Muon",
+      "description": "top_level_478c0427 · AdamW + Muon · 3,150 completed steps · snapshots every 25 steps",
+      "trace_url": "https://pub-44c93565f29749ec89ce73a846ce5442.r2.dev/traces/top_level_478c0427-6e06bfc24fa24cafbe3486161070f644.json"
+    }
+  ]
+}

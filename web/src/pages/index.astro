@@ -1,5 +1,1358 @@
 ---
-const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
-
-return Astro.redirect(`${basePath}/compare`);
+import Layout from '../layouts/Layout.astro';
+const manifestUrl = import.meta.env.PUBLIC_TRACE_MANIFEST_URL || `${import.meta.env.BASE_URL}traces-manifest.json`;
 ---
+
+<Layout title="Optimizer Fingerprints" wide>
+	<section class="compare-shell" data-compare-root>
+		<div data-compare-content hidden>
+					<header class="compare-topbar">
+						<p class="compare-intro">
+							Parameter diagnostics for entries in the modded-nanoGPT optimization track.
+						</p>
+						<div class="compare-filters" aria-label="Parameter averaging controls">
+							<details class="filter-menu" data-parameter-menu>
+								<summary data-parameter-summary>Parameters: all groups</summary>
+								<div class="filter-options" data-parameter-options></div>
+							</details>
+							<details class="filter-menu" data-layer-menu>
+								<summary data-layer-summary>Layers: all</summary>
+								<div class="filter-options layer-options" data-layer-options></div>
+							</details>
+						</div>
+					</header>
+
+					<section class="optimizer-strip" aria-label="Run selection">
+						<div class="optimizer-slots" data-optimizer-slots></div>
+						<div class="optimizer-picker">
+							<div class="load-status-slot">
+								<div class="load-status" data-load-status data-state="loading" role="status" aria-live="polite">
+									<span class="load-spinner" aria-hidden="true"></span>
+									<span data-load-status-message>Loading traces…</span>
+								</div>
+							</div>
+							<button type="button" class="optimizer-add" data-add-optimizer aria-label="Add run">+</button>
+							<div class="optimizer-menu" data-optimizer-menu hidden></div>
+						</div>
+					</section>
+
+					<div class="compare-grid" data-chart-grid></div>
+		</div>
+	</section>
+</Layout>
+
+<style is:global>
+	.compare-shell {
+		box-sizing: border-box;
+		padding: 10px 16px 0;
+	}
+
+	.load-status-slot {
+		display: grid;
+		place-items: center;
+		width: 18px;
+		height: 18px;
+		flex: 0 0 18px;
+	}
+
+	.load-status {
+		display: grid;
+		place-items: center;
+		width: 18px;
+		height: 18px;
+	}
+
+	.load-status[hidden] {
+		display: none;
+	}
+
+	.load-spinner {
+		width: 14px;
+		height: 14px;
+		border: 2px solid var(--line);
+		border-top-color: var(--accent);
+		border-radius: 50%;
+		animation: load-spin 700ms linear infinite;
+	}
+
+	.load-status[data-state='loading'] [data-load-status-message] {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip: rect(0 0 0 0);
+		white-space: nowrap;
+	}
+
+	.load-status[data-state='error'] {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		z-index: 100;
+		display: block;
+		width: auto;
+		height: auto;
+		max-width: min(360px, calc(100vw - 40px));
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		padding: 8px 10px;
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 12px;
+	}
+
+	.load-status[data-state='error'] .load-spinner {
+		display: none;
+	}
+
+	@keyframes load-spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.load-spinner {
+			animation-duration: 1400ms;
+		}
+	}
+
+	.compare-shell *,
+	.compare-shell *::before,
+	.compare-shell *::after {
+		box-sizing: border-box;
+	}
+
+	.compare-topbar {
+		display: flex;
+		gap: 16px;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+
+	.compare-intro {
+		margin: 0;
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 12px;
+		font-weight: 400;
+		line-height: 1.4;
+	}
+
+	.compare-filters {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		justify-content: center;
+		font-family: var(--sans);
+	}
+
+	.filter-menu {
+		position: relative;
+		min-width: 190px;
+	}
+
+	.filter-menu summary {
+		position: relative;
+		min-height: 34px;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		padding: 8px 30px 7px 10px;
+		color: var(--ink);
+		font-size: 12px;
+		line-height: 1.4;
+		list-style: none;
+		cursor: pointer;
+		white-space: nowrap;
+	}
+
+	.filter-menu summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.filter-menu summary::after {
+		position: absolute;
+		top: 11px;
+		right: 11px;
+		width: 6px;
+		height: 6px;
+		border-right: 1px solid var(--muted);
+		border-bottom: 1px solid var(--muted);
+		content: '';
+		transform: rotate(45deg);
+	}
+
+	.filter-menu[open] summary,
+	.filter-menu summary:hover {
+		border-color: var(--ink);
+	}
+
+	.filter-menu[open] summary::after {
+		top: 14px;
+		transform: rotate(225deg);
+	}
+
+	.filter-options {
+		position: absolute;
+		top: calc(100% + 5px);
+		right: 0;
+		z-index: 30;
+		width: 240px;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		box-shadow: 0 12px 28px rgb(31 27 22 / 0.12);
+		padding: 5px;
+	}
+
+	.filter-option {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		min-height: 31px;
+		padding: 5px 6px;
+		color: var(--ink);
+		font-size: 12px;
+		cursor: pointer;
+	}
+
+	.filter-option:hover {
+		background: var(--row);
+	}
+
+	.filter-option input {
+		width: 14px;
+		height: 14px;
+		margin: 0;
+		accent-color: var(--accent);
+	}
+
+	.filter-actions {
+		display: flex;
+		gap: 4px;
+		border-bottom: 1px solid var(--line);
+		margin-bottom: 3px;
+		padding: 1px 2px 5px;
+	}
+
+	.filter-actions button {
+		border: 0;
+		background: transparent;
+		padding: 3px 5px;
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 10px;
+		cursor: pointer;
+	}
+
+	.filter-actions button:hover {
+		background: var(--row);
+		color: var(--ink);
+	}
+
+	.layer-options {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		width: 220px;
+	}
+
+	.layer-options .filter-actions {
+		grid-column: 1 / -1;
+	}
+
+	.optimizer-strip {
+		position: relative;
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		border: 1px solid var(--line);
+		background: var(--paper);
+		padding: 8px;
+		font-family: var(--sans);
+	}
+
+	.optimizer-slots {
+		display: flex;
+		flex: 1 1 auto;
+		flex-wrap: wrap;
+		gap: 8px;
+		min-width: 0;
+	}
+
+	.optimizer-slot {
+		display: flex;
+		gap: 6px;
+		align-items: center;
+		max-width: 190px;
+		min-width: 0;
+		border: 1px solid color-mix(in srgb, var(--optimizer-color, var(--accent)) 38%, var(--line));
+		border-left: 4px solid var(--optimizer-color, var(--accent));
+		background: color-mix(in srgb, var(--optimizer-color, var(--accent)) 9%, var(--paper));
+		padding: 5px 6px 5px 4px;
+		color: var(--ink);
+	}
+
+	.optimizer-index {
+		flex: 0 0 auto;
+		width: 18px;
+		color: var(--optimizer-color, var(--accent));
+		font-family: var(--mono);
+		font-size: 11px;
+		text-align: right;
+	}
+
+	.optimizer-color {
+		flex: 0 0 auto;
+		width: 9px;
+		height: 18px;
+		border: 1px solid rgb(31 27 22 / 0.18);
+	}
+
+	.optimizer-label {
+		min-width: 0;
+		overflow: hidden;
+		color: var(--ink);
+		font-family: var(--mono);
+		font-size: 11px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.optimizer-picker {
+		position: relative;
+		display: flex;
+		gap: 6px;
+		align-items: center;
+		flex: 0 0 auto;
+	}
+
+	.optimizer-remove,
+	.optimizer-add {
+		flex: 0 0 auto;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		color: var(--ink);
+		font-family: var(--sans);
+		cursor: pointer;
+	}
+
+	.optimizer-remove {
+		width: 20px;
+		height: 20px;
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: var(--muted);
+		font-size: 12px;
+		line-height: 18px;
+	}
+
+	.optimizer-remove:hover {
+		color: var(--accent);
+	}
+
+	.optimizer-add {
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		font-size: 18px;
+		line-height: 28px;
+	}
+
+	.optimizer-add:hover,
+	.optimizer-add:focus-visible {
+		background: var(--row);
+		outline: 0;
+	}
+
+	.optimizer-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		right: 0;
+		z-index: 20;
+		width: min(760px, calc(100vw - 32px));
+		max-height: min(480px, calc(100vh - 180px));
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		box-shadow: 0 16px 36px rgb(31 27 22 / 0.14);
+		scrollbar-gutter: stable;
+	}
+
+	.optimizer-options {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+
+	.optimizer-menu .optimizer-option {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+		width: 100%;
+		border: 0;
+		border-right: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		background: var(--paper);
+		color: var(--ink);
+		padding: 9px 10px;
+		font-family: var(--mono);
+		font-size: 10px;
+		text-align: left;
+		cursor: pointer;
+	}
+
+	.optimizer-menu .optimizer-option:nth-child(3n) {
+		border-right: 0;
+	}
+
+	.optimizer-menu .optimizer-option:hover,
+	.optimizer-menu .optimizer-option:focus {
+		background: var(--row);
+		outline: 0;
+	}
+
+	.optimizer-option-name {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.optimizer-search {
+		position: sticky;
+		top: 0;
+		z-index: 1;
+		width: 100%;
+		min-height: 42px;
+		border: 0;
+		border-bottom: 1px solid var(--line-strong);
+		border-radius: 0;
+		outline: 0;
+		background: var(--paper);
+		padding: 10px 12px;
+		color: var(--ink);
+		font-family: var(--sans);
+		font-size: 12px;
+	}
+
+	.optimizer-search:focus {
+		box-shadow: inset 3px 0 0 var(--accent);
+	}
+
+	.optimizer-search-empty {
+		grid-column: 1 / -1;
+		padding: 12px 9px;
+		color: var(--muted);
+		font-family: var(--sans);
+		font-size: 11px;
+	}
+
+	.optimizer-menu .optimizer-color {
+		width: 4px;
+		height: 28px;
+		border: 0;
+	}
+
+	@media (max-width: 800px) {
+		.optimizer-menu {
+			width: min(500px, calc(100vw - 32px));
+		}
+
+		.optimizer-options {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.optimizer-menu .optimizer-option:nth-child(3n) {
+			border-right: 1px solid var(--line);
+		}
+
+		.optimizer-menu .optimizer-option:nth-child(2n) {
+			border-right: 0;
+		}
+	}
+
+	@media (max-width: 520px) {
+		.optimizer-options {
+			grid-template-columns: 1fr;
+		}
+
+		.optimizer-menu .optimizer-option,
+		.optimizer-menu .optimizer-option:nth-child(2n),
+		.optimizer-menu .optimizer-option:nth-child(3n) {
+			border-right: 0;
+		}
+	}
+
+	.compare-grid {
+		display: grid;
+		grid-template-columns: repeat(6, minmax(0, 1fr));
+		margin-top: 12px;
+		border-top: 1px solid var(--line);
+		border-left: 1px solid var(--line);
+		background: var(--paper);
+	}
+
+	.metric-chart {
+		grid-column: span 2;
+		min-width: 0;
+		border-right: 1px solid var(--line);
+		border-bottom: 1px solid var(--line);
+		background: var(--paper);
+		font-family: var(--sans);
+	}
+
+	.metric-chart > header {
+		position: relative;
+		display: flex;
+		align-items: center;
+		flex-direction: column;
+		min-height: 92px;
+		border-bottom: 1px solid var(--line);
+		background: var(--paper);
+		padding: 11px 14px 10px;
+		text-align: center;
+	}
+
+	.metric-definition {
+		position: relative;
+		width: 100%;
+	}
+
+	.metric-definition summary {
+		display: flex;
+		gap: 7px;
+		align-items: center;
+		justify-content: center;
+		list-style: none;
+		cursor: pointer;
+	}
+
+	.metric-definition summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.metric-definition summary:hover h2,
+	.metric-definition[open] summary h2 {
+		color: var(--accent);
+	}
+
+	.metric-formula-hint {
+		border: 1px solid var(--line);
+		padding: 1px 4px;
+		color: var(--muted);
+		font-family: var(--mono);
+		font-size: 8px;
+		font-weight: 500;
+		letter-spacing: 0.03em;
+		line-height: 1.4;
+	}
+
+	.metric-definition-panel {
+		position: absolute;
+		top: calc(100% + 8px);
+		left: 50%;
+		z-index: 40;
+		width: min(460px, calc(100vw - 32px));
+		border: 1px solid var(--line-strong);
+		background: var(--paper);
+		box-shadow: 0 12px 28px rgb(31 27 22 / 0.14);
+		padding: 16px 18px;
+		transform: translateX(-50%);
+	}
+
+	.metric-chart h2 {
+		margin: 0;
+		color: var(--ink);
+		font-family: var(--sans);
+		font-size: 16px;
+		font-weight: 600;
+		letter-spacing: 0;
+		line-height: 1.1;
+		text-align: center;
+	}
+
+	.metric-formula {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		min-height: 38px;
+		margin-top: 8px;
+		overflow: hidden;
+		padding: 3px 0 0;
+		color: var(--ink);
+	}
+
+	.metric-formula .katex-display {
+		margin: 0;
+	}
+
+	.metric-formula .katex {
+		font-size: 1em;
+	}
+
+	.metric-definition-panel .metric-formula {
+		margin-top: 0;
+	}
+
+	.metric-context {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		min-height: 34px;
+		overflow: hidden;
+		color: var(--muted);
+	}
+
+	.metric-context .katex-display {
+		margin: 0;
+	}
+
+	.metric-context .katex {
+		font-size: 0.74em;
+	}
+
+	.metric-meaning {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 16px;
+		width: 100%;
+		margin-top: 10px;
+		padding-top: 6px;
+		color: var(--muted);
+		font-size: 10px;
+		line-height: 1.25;
+	}
+
+	.metric-meaning span {
+		padding: 0;
+		text-align: left;
+	}
+
+	.metric-meaning span:last-child {
+		text-align: right;
+	}
+
+	.metric-meaning strong {
+		display: block;
+		margin-bottom: 1px;
+		color: var(--ink);
+		font-size: 9px;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.chart-host {
+		height: 225px;
+		min-height: 225px;
+		padding: 8px 10px 6px;
+		background:
+			linear-gradient(180deg, color-mix(in srgb, var(--paper) 96%, white 4%), var(--paper));
+	}
+
+	.chart-host > div {
+		width: 100%;
+		height: 100%;
+	}
+
+	@media (max-width: 1200px) {
+		.compare-grid {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.metric-chart {
+			grid-column: auto;
+		}
+	}
+
+	@media (max-width: 760px) {
+		.compare-topbar {
+			flex-direction: column;
+			justify-content: center;
+		}
+
+		.compare-intro {
+			text-align: center;
+		}
+
+		.compare-filters {
+			justify-content: center;
+			width: 100%;
+		}
+
+		.filter-menu {
+			flex: 1 1 0;
+			min-width: 0;
+		}
+
+		.compare-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	@media (max-width: 560px) {
+		.compare-filters {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.filter-options {
+			right: auto;
+			left: 0;
+			width: 100%;
+		}
+	}
+
+	.empty-chart {
+		display: grid;
+		place-items: center;
+		height: 225px;
+		color: var(--muted);
+		font-size: 12px;
+	}
+
+	.chart-tooltip-step {
+		border-bottom: 1px solid var(--line);
+		margin-bottom: 5px;
+		padding-bottom: 4px;
+		color: var(--muted);
+		font-family: var(--mono);
+		font-size: 10px;
+	}
+
+	@media (max-width: 680px) {
+		.compare-shell {
+			padding: 10px 18px 0;
+		}
+
+		.compare-topbar,
+		.optimizer-strip {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.compare-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.optimizer-picker,
+		.optimizer-add {
+			align-self: flex-end;
+		}
+	}
+</style>
+
+<script id="manifest-url" type="application/json" set:html={JSON.stringify(manifestUrl)}></script>
+
+<script>
+	import { LineChart } from 'echarts/charts';
+	import { GridComponent, TooltipComponent } from 'echarts/components';
+	import * as echarts from 'echarts/core';
+	import { SVGRenderer } from 'echarts/renderers';
+	import katex from 'katex';
+	import 'katex/dist/katex.min.css';
+	import { loadTrace, loadTraceManifest } from '../lib/trace-loader';
+
+	echarts.use([LineChart, GridComponent, TooltipComponent, SVGRenderer]);
+
+	const manifestUrl = JSON.parse(document.getElementById('manifest-url').textContent);
+	let manifestEntries = [];
+	const loadedRuns = new Map();
+	const root = document.querySelector('[data-compare-root]');
+	const loadStatus = root?.querySelector('[data-load-status]');
+	const loadStatusMessage = root?.querySelector('[data-load-status-message]');
+	const parameterMenu = root?.querySelector('[data-parameter-menu]');
+	const parameterSummary = root?.querySelector('[data-parameter-summary]');
+	const parameterOptionsRoot = root?.querySelector('[data-parameter-options]');
+	const layerMenu = root?.querySelector('[data-layer-menu]');
+	const layerSummary = root?.querySelector('[data-layer-summary]');
+	const layerOptionsRoot = root?.querySelector('[data-layer-options]');
+	const optimizerSlotsRoot = root?.querySelector('[data-optimizer-slots]');
+	const addOptimizer = root?.querySelector('[data-add-optimizer]');
+	const optimizerMenu = root?.querySelector('[data-optimizer-menu]');
+	const chartGrid = root?.querySelector('[data-chart-grid]');
+	const chartInstances = new Map();
+	const colors = ['#9b2f2f', '#007a78', '#356aa0', '#b86b00', '#6f5796', '#3f7d57', '#b64f73', '#76613b', '#51616f', '#8a6d00'];
+	const parameterGroups = [
+		['attention_qkv', 'Attention Q / K / V'],
+		['attention_projection', 'Attention projection'],
+		['mlp_fc', 'MLP FC'],
+		['mlp_projection', 'MLP projection'],
+	];
+	const layers = Array.from({ length: 12 }, (_, index) => index);
+	const selectedParameterGroups = new Set(['attention_qkv']);
+	const selectedLayers = new Set(layers);
+	const overviewMetrics = [
+		{
+			label: 'Gradient Alignment',
+			metric: 'update_neg_grad_cos',
+			formula: String.raw`A=\frac{\Delta\theta\cdot(-g)}{\lVert\Delta\theta\rVert_2\lVert g\rVert_2}`,
+			context: String.raw`\Delta\theta=\theta_{\mathrm{after}}-\theta_{\mathrm{before}},\qquad g=\text{pre-step gradient}`,
+			lowMeans: 'deviates from descent',
+			higherMeans: 'follows the negative gradient',
+		},
+		{
+			label: 'Gradient Norm',
+			metric: 'grad_norm',
+			scale: 'log',
+			formula: String.raw`G=\lVert g\rVert_2`,
+			context: String.raw`g=\text{gradient immediately before the optimizer step}`,
+			lowMeans: 'smaller gradient signal',
+			higherMeans: 'larger gradient signal',
+		},
+		{
+			label: 'Weight Norm',
+			metric: 'theta_norm',
+			scale: 'log',
+			formula: String.raw`W=\lVert\theta\rVert_2`,
+			context: String.raw`\theta=\text{weights immediately before the optimizer step}`,
+			lowMeans: 'smaller weight scale',
+			higherMeans: 'larger weight scale',
+		},
+		{
+			label: 'RMS–Step Correlation',
+			metric: 'update_grad_rms_suppression_corr',
+			formula: String.raw`C=\mathrm{corr}\!\left(\log\sqrt{v_t},\,\log\left|\frac{\Delta\theta}{g}\right|\right)`,
+			context: String.raw`v_t=0.9v_{t-1}+0.1g_t^2\quad\text{(per-coordinate gradient history)}`,
+			lowMeans: 'high-RMS coordinates damped',
+			higherMeans: 'high-RMS coordinates favored',
+		},
+		{
+			label: 'Normalized Stable Rank',
+			metric: 'update_rank_fraction',
+			formula: String.raw`R_s=\frac{\sum_i s_i^2}{s_1^2\min(m,n)}`,
+			context: String.raw`s_i=\text{singular values of }\Delta\theta,\qquad m\times n=\text{matrix shape}`,
+			lowMeans: 'few dominant directions',
+			higherMeans: 'energy spread across directions',
+		},
+		{
+			label: 'Orthogonality Error',
+			metric: 'update_orthogonality_error',
+			formula: String.raw`E=\frac{\lVert M-\alpha I\rVert_F}{\alpha\sqrt d}`,
+			context: String.raw`M=\text{Gram matrix of }\Delta\theta,\qquad d=\dim(M),\qquad \alpha=\mathrm{tr}(M)/d`,
+			lowMeans: 'scaled-orthogonal update',
+			higherMeans: 'uneven singular directions',
+		},
+	];
+	let optimizerNames = [];
+	const selectedOptimizerSlots = [];
+
+	function showLoadingStatus(message) {
+		loadStatus.dataset.state = 'loading';
+		loadStatusMessage.textContent = message;
+		loadStatus.hidden = false;
+	}
+
+	function showLoadError(message) {
+		loadStatus.dataset.state = 'error';
+		loadStatusMessage.textContent = message;
+		loadStatus.hidden = false;
+	}
+
+	function hideLoadStatus() {
+		loadStatus.hidden = true;
+	}
+
+	async function ensureSelectedRuns() {
+		const pendingNames = selectedNames().filter((name) => !loadedRuns.has(name));
+		if (!pendingNames.length) return;
+		showLoadingStatus('Loading selected traces…');
+		await Promise.all(pendingNames.map(async (name) => {
+			const entry = manifestEntries.find((candidate) => candidate.title === name);
+			if (entry) loadedRuns.set(name, await loadTrace(entry));
+		}));
+		hideLoadStatus();
+	}
+
+	function renderControls() {
+		parameterOptionsRoot.replaceChildren(
+			makeFilterActions(
+				() => replaceSelection(selectedParameterGroups, parameterGroups.map(([value]) => value), parameterOptionsRoot),
+				() => replaceSelection(selectedParameterGroups, [], parameterOptionsRoot),
+			),
+			...parameterGroups.map(([value, text]) => makeFilterOption(text, selectedParameterGroups.has(value), (checked) => {
+				if (checked) selectedParameterGroups.add(value);
+				else selectedParameterGroups.delete(value);
+				updateFilterSummaries();
+				renderCharts();
+			})),
+		);
+		layerOptionsRoot.replaceChildren(
+			makeFilterActions(
+				() => replaceSelection(selectedLayers, layers, layerOptionsRoot),
+				() => replaceSelection(selectedLayers, [], layerOptionsRoot),
+			),
+			...layers.map((layer) => makeFilterOption(`Layer ${layer}`, selectedLayers.has(layer), (checked) => {
+				if (checked) selectedLayers.add(layer);
+				else selectedLayers.delete(layer);
+				updateFilterSummaries();
+				renderCharts();
+			})),
+		);
+		updateFilterSummaries();
+		renderOptimizerSlots();
+	}
+
+	function makeFilterActions(selectAll, selectNone) {
+		const actions = document.createElement('div');
+		actions.className = 'filter-actions';
+		for (const [text, handler] of [['Select all', selectAll], ['Select none', selectNone]]) {
+			const button = document.createElement('button');
+			button.type = 'button';
+			button.textContent = text;
+			button.addEventListener('click', handler);
+			actions.append(button);
+		}
+		return actions;
+	}
+
+	function replaceSelection(selection, values, optionsRoot) {
+		selection.clear();
+		for (const value of values) selection.add(value);
+		for (const checkbox of optionsRoot.querySelectorAll('input[type="checkbox"]')) checkbox.checked = values.length > 0;
+		updateFilterSummaries();
+		renderCharts();
+	}
+
+	function makeFilterOption(text, checked, onChange) {
+		const label = document.createElement('label');
+		label.className = 'filter-option';
+		const input = document.createElement('input');
+		input.type = 'checkbox';
+		input.checked = checked;
+		input.addEventListener('change', () => onChange(input.checked));
+		const caption = document.createElement('span');
+		caption.textContent = text;
+		label.append(input, caption);
+		return label;
+	}
+
+	function updateFilterSummaries() {
+		if (selectedParameterGroups.size === parameterGroups.length) {
+			parameterSummary.textContent = 'Parameters: all groups';
+		} else if (selectedParameterGroups.size === 0) {
+			parameterSummary.textContent = 'Parameters: none';
+		} else if (selectedParameterGroups.size === 1) {
+			const selected = parameterGroups.find(([value]) => selectedParameterGroups.has(value));
+			parameterSummary.textContent = `Parameters: ${selected?.[1] ?? '1 group'}`;
+		} else {
+			parameterSummary.textContent = `Parameters: ${selectedParameterGroups.size} groups`;
+		}
+
+		if (selectedLayers.size === layers.length) layerSummary.textContent = 'Layers: all';
+		else if (selectedLayers.size === 0) layerSummary.textContent = 'Layers: none';
+		else if (selectedLayers.size <= 3) layerSummary.textContent = `Layers: ${[...selectedLayers].sort((a, b) => a - b).join(', ')}`;
+		else layerSummary.textContent = `Layers: ${selectedLayers.size} selected`;
+	}
+
+	function selectedNames() {
+		return selectedOptimizerSlots.filter(Boolean);
+	}
+
+	async function render() {
+		try {
+			await ensureSelectedRuns();
+		} catch (error) {
+			showLoadError(error instanceof Error ? error.message : String(error));
+			return;
+		}
+		renderOptimizerSlots();
+		renderCharts();
+	}
+
+	function renderOptimizerSlots() {
+		optimizerSlotsRoot.replaceChildren(
+			...selectedOptimizerSlots.map((name, index) => {
+				const slot = document.createElement('div');
+				slot.className = 'optimizer-slot';
+				slot.style.setProperty('--optimizer-color', colorForOptimizer(name));
+				const number = document.createElement('span');
+				number.className = 'optimizer-index';
+				number.textContent = String(index + 1);
+				const label = document.createElement('span');
+				label.className = 'optimizer-label';
+				label.textContent = name;
+				slot.title = manifestEntries.find((entry) => entry.title === name)?.description ?? '';
+				const remove = document.createElement('button');
+				remove.type = 'button';
+				remove.className = 'optimizer-remove';
+				remove.textContent = 'x';
+				remove.setAttribute('aria-label', `Remove ${name}`);
+				remove.disabled = selectedOptimizerSlots.length <= 1;
+				remove.addEventListener('click', () => {
+					selectedOptimizerSlots.splice(index, 1);
+					void render();
+				});
+				slot.append(number, label, remove);
+				return slot;
+			}),
+		);
+		renderOptimizerMenu();
+	}
+
+	function colorForOptimizer(name) {
+		return colors[optimizerNames.indexOf(name) % colors.length];
+	}
+
+	function renderOptimizerMenu() {
+		const chosen = new Set(selectedNames());
+		const available = optimizerNames.filter((name) => !chosen.has(name));
+		addOptimizer.disabled = available.length === 0;
+		const search = document.createElement('input');
+		search.type = 'search';
+		search.className = 'optimizer-search';
+		search.placeholder = 'Search runs…';
+		search.setAttribute('aria-label', 'Search available runs');
+		const options = document.createElement('div');
+		options.className = 'optimizer-options';
+		const renderOptions = () => {
+			const query = search.value.trim().toLowerCase();
+			const matches = query ? available.filter((name) => name.toLowerCase().includes(query)) : available;
+			if (!matches.length) {
+				const empty = document.createElement('div');
+				empty.className = 'optimizer-search-empty';
+				empty.textContent = 'No matching runs';
+				options.replaceChildren(empty);
+				return;
+			}
+			options.replaceChildren(...matches.map((name) => {
+				const option = document.createElement('button');
+				option.type = 'button';
+				option.className = 'optimizer-option';
+				const swatch = document.createElement('span');
+				swatch.className = 'optimizer-color';
+				swatch.style.background = colorForOptimizer(name);
+				const label = document.createElement('span');
+				label.className = 'optimizer-option-name';
+				label.textContent = name;
+				option.title = manifestEntries.find((entry) => entry.title === name)?.description ?? '';
+				option.append(swatch, label);
+				option.addEventListener('click', () => {
+					selectedOptimizerSlots.push(name);
+					closeOptimizerMenu();
+					render();
+				});
+				return option;
+			}));
+		};
+		search.addEventListener('input', renderOptions);
+		renderOptions();
+		optimizerMenu.replaceChildren(search, options);
+		if (available.length === 0) closeOptimizerMenu();
+	}
+
+	function toggleOptimizerMenu() {
+		if (addOptimizer.disabled) return;
+		optimizerMenu.hidden = !optimizerMenu.hidden;
+		if (!optimizerMenu.hidden) queueMicrotask(() => optimizerMenu.querySelector('.optimizer-search')?.focus());
+	}
+
+	function closeOptimizerMenu() {
+		optimizerMenu.hidden = true;
+	}
+
+	function trackedParameter(name) {
+		let match = /^blocks\.(\d+)\.attn\.([qkv])\.weight$/.exec(name);
+		if (match) return { layer: Number(match[1]), group: 'attention_qkv' };
+		match = /^blocks\.(\d+)\.attn\.proj\.weight$/.exec(name);
+		if (match) return { layer: Number(match[1]), group: 'attention_projection' };
+		match = /^blocks\.(\d+)\.mlp\.fc\.weight$/.exec(name);
+		if (match) return { layer: Number(match[1]), group: 'mlp_fc' };
+		match = /^blocks\.(\d+)\.mlp\.proj\.weight$/.exec(name);
+		if (match) return { layer: Number(match[1]), group: 'mlp_projection' };
+		return null;
+	}
+
+	function parameterIsSelected(parameter) {
+		const info = trackedParameter(parameter.name);
+		return info !== null && selectedLayers.has(info.layer) && selectedParameterGroups.has(info.group);
+	}
+
+	function runSeries(run, spec) {
+		const useLogScale = spec.scale === 'log';
+		return run.snapshots.map((snapshot) => {
+			const values = snapshot.parameters
+				.filter(parameterIsSelected)
+				.map((parameter) => parameter.metrics[spec.metric])
+				.filter((value) => Number.isFinite(value));
+			const raw = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+			const valid = Number.isFinite(raw) && (!useLogScale || raw > 0);
+			return {
+				step: snapshot.step,
+				raw: valid ? raw : null,
+				value: valid ? (useLogScale ? Math.log10(raw) : raw) : null,
+				count: valid ? values.length : 0,
+			};
+		});
+	}
+
+	function optimizerSeries(spec, names = selectedNames()) {
+		return names.map((name) => {
+			const run = loadedRuns.get(name);
+			return {
+				name,
+				color: colorForOptimizer(name),
+				points: run ? runSeries(run, spec) : [],
+			};
+		});
+	}
+
+	function metricDomain(spec) {
+		if (['update_neg_grad_cos', 'update_prev_update_cos', 'update_neg_grad_ema_cos'].includes(spec.metric)) {
+			return [-1.05, 1.05];
+		}
+		const values = optimizerSeries(spec)
+			.flatMap((entry) => entry.points)
+			.map((point) => point.value)
+			.filter((value) => Number.isFinite(value));
+		if (!values.length) return [0, 1];
+		const min = Math.min(...values);
+		const max = Math.max(...values);
+		if (spec.scale === 'log') {
+			return [Math.floor(min), Math.max(Math.ceil(max + 0.12), Math.floor(min) + 1)];
+		}
+		if (min < 0) {
+			const pad = Math.max((max - min) * 0.12, 1e-12);
+			return [min - pad, max + pad];
+		}
+		return [0, Math.max(max * 1.18, max + 1e-12)];
+	}
+
+	function renderCharts() {
+		for (const chart of chartInstances.values()) chart.dispose();
+		chartInstances.clear();
+		chartGrid.replaceChildren(
+			...overviewMetrics.map((spec) => {
+				const article = document.createElement('article');
+				article.className = 'metric-chart';
+				const header = document.createElement('header');
+				const definition = document.createElement('details');
+				definition.className = 'metric-definition';
+				const summary = document.createElement('summary');
+				const title = document.createElement('h2');
+				title.textContent = spec.label;
+				const formulaHint = document.createElement('span');
+				formulaHint.className = 'metric-formula-hint';
+				formulaHint.textContent = 'ƒx';
+				formulaHint.setAttribute('aria-hidden', 'true');
+				summary.append(title, formulaHint);
+				const definitionPanel = document.createElement('div');
+				definitionPanel.className = 'metric-definition-panel';
+				const formula = document.createElement('div');
+				formula.className = 'metric-formula';
+				katex.render(spec.formula, formula, { displayMode: true, throwOnError: false, strict: false });
+				const context = document.createElement('div');
+				context.className = 'metric-context';
+				katex.render(spec.context, context, { displayMode: true, throwOnError: false, strict: false });
+				definitionPanel.append(formula, context);
+				definition.append(summary, definitionPanel);
+				definition.addEventListener('toggle', () => {
+					if (!definition.open) return;
+					for (const other of root.querySelectorAll('.metric-definition[open]')) {
+						if (other !== definition) other.removeAttribute('open');
+					}
+				});
+				const meaning = document.createElement('div');
+				meaning.className = 'metric-meaning';
+				const low = document.createElement('span');
+				const lowLabel = document.createElement('strong');
+				lowLabel.textContent = 'Low: ';
+				low.append(lowLabel, spec.lowMeans);
+				const high = document.createElement('span');
+				const highLabel = document.createElement('strong');
+				highLabel.textContent = 'High: ';
+				high.append(highLabel, spec.higherMeans);
+				meaning.append(low, high);
+				header.append(definition, meaning);
+				const host = document.createElement('div');
+				host.className = 'chart-host';
+				const chartRoot = document.createElement('div');
+				host.append(chartRoot);
+				article.append(header, host);
+				queueMicrotask(() => renderLineChart(chartRoot, spec));
+				return article;
+			}),
+		);
+	}
+
+	function renderLineChart(host, spec) {
+		const runs = optimizerSeries(spec);
+		const hasValues = runs.some((entry) => entry.points.some((point) => Number.isFinite(point.value)));
+		if (!hasValues) {
+			const empty = document.createElement('div');
+			empty.className = 'empty-chart';
+			empty.textContent = selectedLayers.size && selectedParameterGroups.size ? 'No finite values' : 'Select at least one layer and parameter group';
+			host.replaceChildren(empty);
+			return;
+		}
+		const chart = echarts.init(host, null, { renderer: 'svg' });
+		chartInstances.set(host, chart);
+		const useLogScale = spec.scale === 'log';
+		const [yMin, yMax] = metricDomain(spec);
+		const visibleSteps = runs.flatMap((entry) => entry.points.filter((point) => Number.isFinite(point.value)).map((point) => point.step));
+		const lastVisibleStep = visibleSteps.length ? Math.max(...visibleSteps) : null;
+		chart.setOption({
+			animation: false,
+			grid: { left: 12, right: 12, top: 15, bottom: 35, containLabel: true },
+			tooltip: {
+				trigger: 'axis',
+				backgroundColor: '#fffdf8',
+				borderColor: '#bfb4a4',
+				borderWidth: 1,
+				padding: [8, 10],
+				textStyle: { color: '#1f1b16', fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 11 },
+				extraCssText: 'box-shadow: 0 8px 22px rgba(31,27,22,0.12);',
+				formatter: (items) => formatTooltip(items, useLogScale),
+				axisPointer: { type: 'line', lineStyle: { color: 'rgba(111, 103, 92, 0.45)', width: 1 } },
+			},
+			xAxis: {
+				type: 'value',
+				min: 0,
+				max: lastVisibleStep,
+				splitNumber: 3,
+				minInterval: 25,
+				name: 'step',
+				nameLocation: 'middle',
+				nameGap: 25,
+				nameTextStyle: { color: '#6f675c', fontFamily: 'IBM Plex Mono, monospace', fontSize: 9 },
+				axisLine: { show: true, lineStyle: { color: 'rgba(111, 103, 92, 0.55)', width: 1 } },
+				axisTick: { show: true, length: 3, lineStyle: { color: 'rgba(111, 103, 92, 0.55)' } },
+				axisLabel: {
+					color: '#6f675c',
+					fontFamily: 'IBM Plex Mono, monospace',
+					fontSize: 9,
+					margin: 7,
+					hideOverlap: true,
+					formatter: formatStep,
+				},
+				splitLine: { show: false },
+			},
+			yAxis: {
+				type: 'value',
+				min: yMin,
+				max: yMax,
+				splitNumber: 2,
+				axisLine: { show: true, lineStyle: { color: 'rgba(111, 103, 92, 0.55)', width: 1 } },
+				axisTick: { show: false },
+				axisLabel: {
+					color: '#6f675c',
+					fontFamily: 'IBM Plex Mono, monospace',
+					fontSize: 9,
+					margin: 6,
+					formatter: (value) => (useLogScale ? formatSigFig(10 ** value) : formatSigFig(value)),
+				},
+				splitLine: {
+					show: true,
+					lineStyle: { color: 'rgba(191, 180, 164, 0.18)', width: 1 },
+				},
+			},
+			series: runs.map((entry) => ({
+				name: entry.name,
+				type: 'line',
+				showSymbol: false,
+				connectNulls: false,
+				sampling: 'lttb',
+				lineStyle: { color: entry.color, width: 2, cap: 'round', join: 'round' },
+				itemStyle: { color: entry.color },
+				emphasis: { focus: 'series', lineStyle: { width: 3 } },
+				data: entry.points.map((point) => ({
+					value: [point.step, point.value, point.raw, point.count],
+				})),
+			})),
+		});
+	}
+
+	function formatTooltip(items, useLogScale) {
+		const entries = Array.isArray(items) ? items : [items];
+		if (!entries.length) return '';
+		const step = entries[0]?.value?.[0];
+		const lines = [`<div class="chart-tooltip-step">step ${escapeHtml(String(step))}</div>`];
+		for (const item of entries) {
+			const plotted = item?.value?.[1];
+			if (!Number.isFinite(plotted)) continue;
+			const raw = item.value[2] ?? (useLogScale ? 10 ** plotted : plotted);
+			const count = item.value[3] ?? 0;
+			lines.push(`<div><span style="color:${item.color}">●</span> ${escapeHtml(item.seriesName)} <strong>${escapeHtml(format(raw))}</strong> <span style="color:#6f675c">· ${count} params</span></div>`);
+		}
+		return lines.join('');
+	}
+
+	function escapeHtml(value) {
+		return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+	}
+
+	function format(value) {
+		if (!Number.isFinite(value)) return 'n/a';
+		const abs = Math.abs(value);
+		if (abs !== 0 && (abs < 0.01 || abs >= 10000)) return value.toExponential(3);
+		return value.toLocaleString('en-US', { maximumFractionDigits: 6 });
+	}
+
+	function formatStep(value) {
+		if (!Number.isFinite(value)) return '';
+		if (Math.abs(value) >= 1000) return `${Number((value / 1000).toPrecision(2))}k`;
+		return String(Math.round(value));
+	}
+
+	function formatSigFig(value) {
+		if (!Number.isFinite(value)) return 'n/a';
+		if (value === 0) return '0';
+		const abs = Math.abs(value);
+		if (abs >= 1e9) return `${Number((value / 1e9).toPrecision(2))}B`;
+		if (abs >= 1e6) return `${Number((value / 1e6).toPrecision(2))}M`;
+		if (abs >= 1e3) return `${Number((value / 1e3).toPrecision(2))}k`;
+		if (abs < 0.01) return value.toExponential(1);
+		return Number(value.toPrecision(2)).toString();
+	}
+
+	addOptimizer?.addEventListener('click', (event) => {
+		event.stopPropagation();
+		toggleOptimizerMenu();
+	});
+	document.addEventListener('click', (event) => {
+		for (const definition of root?.querySelectorAll('.metric-definition[open]') ?? []) {
+			if (!definition.contains(event.target)) definition.removeAttribute('open');
+		}
+		if (!root?.contains(event.target)) {
+			closeOptimizerMenu();
+			parameterMenu?.removeAttribute('open');
+			layerMenu?.removeAttribute('open');
+			return;
+		}
+		if (parameterMenu?.open && !parameterMenu.contains(event.target)) parameterMenu.removeAttribute('open');
+		if (layerMenu?.open && !layerMenu.contains(event.target)) layerMenu.removeAttribute('open');
+		if (event.target === addOptimizer || optimizerMenu?.contains(event.target)) return;
+		closeOptimizerMenu();
+	});
+	parameterMenu?.addEventListener('toggle', () => {
+		if (parameterMenu.open) layerMenu?.removeAttribute('open');
+	});
+	layerMenu?.addEventListener('toggle', () => {
+		if (layerMenu.open) parameterMenu?.removeAttribute('open');
+	});
+	window.addEventListener('resize', () => {
+		for (const chart of chartInstances.values()) chart.resize();
+	});
+
+	async function initialize() {
+		try {
+			manifestEntries = await loadTraceManifest(manifestUrl);
+		} catch (error) {
+			showLoadError(error instanceof Error ? error.message : String(error));
+			return;
+		}
+		if (!manifestEntries.length) {
+			showLoadError('No NanoGPT traces are available.');
+			return;
+		}
+		optimizerNames = [...new Set(manifestEntries.map((entry) => entry.title))].sort();
+		selectedOptimizerSlots.push(...optimizerNames.slice(0, Math.min(2, optimizerNames.length)));
+		root.querySelector('[data-compare-content]').hidden = false;
+		renderControls();
+		await render();
+	}
+	void initialize();
+</script>

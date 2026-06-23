@@ -8,11 +8,13 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "manifest": "node ../scripts/generate-trace-manifest.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
     "astro": "^6.4.7",
-    "echarts": "^6.1.0"
+    "echarts": "^6.1.0",
+    "katex": "^0.17.0"
   }
 }

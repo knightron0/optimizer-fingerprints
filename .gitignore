@@ -5,12 +5,14 @@ __pycache__/
 .venv/
 data/
 logs/
-
+experiment-logs/
+logs_v18/
 
 web/node_modules/
 web/triage/
 web/.compiler/
 web/dist/
+web/public/traces
 web/temp/
 web/*.tsbuildinfo
 web/.DS_Store

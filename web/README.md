@@ -1,46 +1,49 @@
-# Astro Starter Kit: Basics
+# NanoGPT optimizer comparison UI
 
-```sh
-npm create astro@latest -- --template basics
+Astro static site for comparing NanoGPT optimizer traces fetched on demand from
+a JSON manifest.
+
+```bash
+npm ci
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+`npm run build` generates the production site in `dist/`.
 
-## 🚀 Project Structure
+Set `PUBLIC_TRACE_MANIFEST_URL` to the public R2 manifest URL at build time. If
+it is unset, the app uses `public/traces-manifest.json`. The generated manifest
+contains a `traces` array:
 
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src
-│   ├── assets
-│   │   └── astro.svg
-│   ├── components
-│   │   └── Welcome.astro
-│   ├── layouts
-│   │   └── Layout.astro
-│   └── pages
-│       └── index.astro
-└── package.json
+```json
+{
+  "traces": [
+    {
+      "id": "muon",
+      "title": "Muon baseline",
+      "description": "Baseline optimizer run",
+      "trace_url": "./traces/muon.json"
+    }
+  ]
+}
 ```
 
-To learn more about the folder structure of an Astro project, refer to [our guide on project structure](https://docs.astro.build/en/basics/project-structure/).
+Relative `trace_url` values resolve against the final manifest response URL.
+Legacy array manifests remain supported. The R2 bucket must allow browser CORS
+requests from the UI's origin.
 
-## 🧞 Commands
+To regenerate the manifest from the repository's `traces/` directory:
 
-All commands are run from the root of the project, from a terminal:
+```bash
+npm run manifest
+```
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+This writes `public/traces-manifest.json`. Trace links such as
+`./traces/example.json` assume the manifest is at the bucket root and the R2
+object keys mirror the local `traces/` directory.
 
-## 👀 Want to learn more?
+To serve the manifest locally while loading trace files from R2, generate it
+with absolute URLs instead:
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+```bash
+TRACE_URL_PREFIX="https://YOUR-R2-URL/traces/" npm run manifest
+```
