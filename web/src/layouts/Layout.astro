@@ -1,12 +1,20 @@
 ---
 interface Props {
 	title?: string;
+	description?: string;
 	wide?: boolean;
 }
 
-const { title = 'NanoGPT traces', wide = false } = Astro.props;
+const {
+	title = 'Optimizer Fingerprints',
+	description = 'Explore and compare the training dynamics of NanoGPT optimizers.',
+	wide = false,
+} = Astro.props;
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, '');
 const withBase = (path: string) => `${basePath}${path}`;
+const siteUrl = Astro.site ?? Astro.url.origin;
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl);
+const socialImageUrl = new URL(withBase('/og.png'), siteUrl);
 ---
 
 <!doctype html>
@@ -14,10 +22,30 @@ const withBase = (path: string) => `${basePath}${path}`;
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		<link rel="canonical" href={canonicalUrl} />
+
+		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="Optimizer Fingerprints" />
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonicalUrl} />
+		<meta property="og:image" content={socialImageUrl} />
+		<meta property="og:image:type" content="image/png" />
+		<meta property="og:image:width" content="5200" />
+		<meta property="og:image:height" content="2520" />
+		<meta property="og:image:alt" content="Optimizer Fingerprints wordmark and fingerprint logo" />
+
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={socialImageUrl} />
+		<meta name="twitter:image:alt" content="Optimizer Fingerprints wordmark and fingerprint logo" />
+
 		<link rel="icon" type="image/svg+xml" href={withBase('/logo.svg')} />
 		<link rel="icon" href={withBase('/logo.svg')} />
 		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
 	</head>
 	<body>
 		<header class:list={['site-header', { 'is-wide': wide }]}>
