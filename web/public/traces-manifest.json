@@ -10,6 +10,15 @@
       "trace_url": "https://data.optimizers.space/traces/entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5-92879940006040b9913ed2c811eb39d3.json"
     },
     {
+      "id": "entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1-0cbc26dc54e242e7b054f3a4d9cd38b4",
+      "title": "#02 Adam Baseline",
+      "description": "AdamW baseline with hidden-matrix lr=.0015, wd=.1, betas=(.9, .95), and 250 warmup steps",
+      "record_number": 2,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260426_adam",
+      "trace_details": "entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1 · AdamW · 4,600 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1-0cbc26dc54e242e7b054f3a4d9cd38b4.json"
+    },
+    {
       "id": "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833-1acd5755b48b4705b284a402ccc7525a",
       "title": "#03 MuonAdam E03",
       "description": "Muon with aux Adam, lr=.025 wd=.0125",
@@ -217,6 +226,15 @@
       "trace_url": "https://data.optimizers.space/traces/20260514_sinksoap-de0b04f5790d46b1a583be978c3cb20c.json"
     },
     {
+      "id": "20260518_soaph-404912205159483b970f2e64f93a44f5",
+      "title": "#27 SOAPH",
+      "description": "SOAPH with per-module initialization, lr=.018, full powered matrix cooldown, and auxiliary cooldown_frac=.4",
+      "record_number": 27,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260518_soaph",
+      "trace_details": "20260518_soaph · AdamW + SOAPH · 3,125 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/20260518_soaph-404912205159483b970f2e64f93a44f5.json"
+    },
+    {
       "id": "20260519_dynmuon-25f9a2132d524a10889bd724d64f080e",
       "title": "#28 DynMuon",
       "description": "DynMuon with matrix power scheduled from .25 to -.25, τ=.04, w=.04, lr=.02, and wd=.025",
@@ -278,6 +296,15 @@
       "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260520_rre_extrapolation_pr300_2925/README.md",
       "trace_details": "20260520_rre_extrapolation_pr300_2925 · AdamW + Muon · 2,925 completed steps · snapshots every 25 steps",
       "trace_url": "https://data.optimizers.space/traces/20260520_rre_extrapolation_pr300_2925-f35da7cf56ac45b9ba6412f10615d02f.json"
+    },
+    {
+      "id": "entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp-fc26a9358b0c4e769b53ce70374b9813",
+      "title": "#35 One-Sided Shampoo",
+      "description": "One-sided Shampoo with pseudoinverse eigendecomposition, Adam grafting, lr=.01, wd=.1, and precondition_frequency=1",
+      "record_number": 35,
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp",
+      "trace_details": "entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp · AdamW + DistributedShampoo · 2,075 completed steps · snapshots every 25 steps",
+      "trace_url": "https://data.optimizers.space/traces/entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp-fc26a9358b0c4e769b53ce70374b9813.json"
     },
     {
       "id": "20260610_tuned_baseline_3250-bcd8fdcd423b4ad4baee3e13f326ba6c",

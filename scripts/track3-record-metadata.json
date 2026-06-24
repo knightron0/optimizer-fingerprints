@@ -4,6 +4,11 @@
     "description": "Muon with aux Adam, lr=.02 wd=.01",
     "log_path": "results/7b8270c5-a9cd-4a73-b7d8-5d86a2d1e428.txt"
   },
+  "entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1": {
+    "number": 2,
+    "description": "AdamW baseline with hidden-matrix lr=.0015, wd=.1, betas=(.9, .95), and 250 warmup steps",
+    "log_path": "results/20260426_adam"
+  },
   "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833": {
     "number": 3,
     "description": "Muon with aux Adam, lr=.025 wd=.0125",
@@ -119,6 +124,11 @@
     "description": "SinkSOAP: Gram-Sinkhorn SOAP-style preconditioning with a NorMuon postconditioner, lr=.04 wd=.025",
     "log_path": "results/20260514_sinksoap/d0155dd0-f77d-48a9-8eb4-453f894b9476.txt"
   },
+  "20260518_soaph": {
+    "number": 27,
+    "description": "SOAPH with per-module initialization, lr=.018, full powered matrix cooldown, and auxiliary cooldown_frac=.4",
+    "log_path": "results/20260518_soaph"
+  },
   "20260519_dynmuon": {
     "number": 28,
     "description": "DynMuon with matrix power scheduled from .25 to -.25, τ=.04, w=.04, lr=.02, and wd=.025",
@@ -153,6 +163,11 @@
     "number": 34,
     "description": "Setup from #30 plus late capped RRE vector extrapolation from step 2820 to 2925",
     "log_path": "results/20260520_rre_extrapolation_pr300_2925/README.md"
+  },
+  "entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp": {
+    "number": 35,
+    "description": "One-sided Shampoo with pseudoinverse eigendecomposition, Adam grafting, lr=.01, wd=.1, and precondition_frequency=1",
+    "log_path": "results/entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp"
   },
   "20260610_tuned_baseline_3250": {
     "number": 36,

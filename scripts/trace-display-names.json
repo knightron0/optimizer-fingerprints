@@ -22,6 +22,7 @@
   "20260514_aurora_proj_pruned_extended_contra": "Aurora Contra",
   "20260514_sinksoap": "SinkSOAP",
   "20260515_contranormuown": "Contra Muown",
+  "20260518_soaph": "SOAPH",
   "20260518_soda_fade_3000_n9": "SODA Fade",
   "20260519_dynmuon": "DynMuon",
   "20260520_rre_extrapolation_pr300_2925": "RRE Extrapolation",
@@ -40,8 +41,10 @@
   "20260619_cwd_rowfloor_tailema": "CWD RowFloor TailEMA",
   "aurora": null,
   "entry_01_20260426_muon_with_aux_adam_lr_02_wd_01_7b8270c5": "MuonAdam E01",
+  "entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1": "Adam Baseline",
   "entry_03_20260426_muon_with_aux_adam_lr_025_wd_0125_311d7833": "MuonAdam E03",
   "entry_06_20260501_muon_with_aux_adam_lr_025_wd_025_51ece938": "MuonAdam E06",
   "entry_12_20260503_muon_with_aux_adam_lr_035_wd_025_fol_1bd8db7a": "MuonAdam E12",
+  "entry_35_20260610_one_sided_shampoo_with_pseudoinverse_sh-origp": "One-Sided Shampoo",
   "top_level_478c0427": null
 }
