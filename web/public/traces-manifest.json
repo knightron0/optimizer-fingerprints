@@ -14,7 +14,7 @@
       "title": "#02 Adam Baseline",
       "description": "AdamW baseline with hidden-matrix lr=.0015, wd=.1, betas=(.9, .95), and 250 warmup steps",
       "record_number": 2,
-      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/20260426_adam",
+      "record_url": "https://github.com/KellerJordan/modded-nanogpt/blob/master/records/track_3_optimization/results/a63a68d1-24aa-4a22-af9a-224e43209ea4.txt",
       "trace_details": "entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1 · AdamW · 4,600 completed steps · snapshots every 25 steps",
       "trace_url": "https://data.optimizers.space/traces/entry_02_20260426_adam_lr_0_0015_betas_0_9_0_95_warmup_a63a68d1-49f2cbd54eb742b497b34f583cac4bb3.json"
     },
